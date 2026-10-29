@@ -11,7 +11,7 @@
   "scripts": {
     "dev:backend": "pnpm --filter @kiet/backend dev",
     "dev:frontend": "pnpm --filter @kiet/frontend dev",
-    "build": "pnpm -r build",
+    "build": "pnpm build:shared && pnpm build:backend && pnpm build:frontend",
     "build:shared": "pnpm --filter @kiet/shared build",
     "build:backend": "pnpm --filter @kiet/backend build",
     "build:frontend": "pnpm --filter @kiet/frontend build",
