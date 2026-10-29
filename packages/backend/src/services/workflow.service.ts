@@ -16,127 +16,123 @@ import type { WorkflowActionResult, WorkflowStatusResponse } from '@kiet/shared'
 
 // ─── Initiate ────────────────────────────────────────────────────────────────
 
-export async function initiateWorkflow(params: InitiateParams): Promise<{
+type InitiateResult = {
   instanceId: string
   currentStage: string
   currentStatus: string
   firstAssignee: { id: string; full_name: string } | null
-}> {
+}
+
+// Inner implementation — caller owns the transaction and connection.
+export async function initiateWorkflowWithClient(
+  client: pg.PoolClient,
+  params: InitiateParams,
+): Promise<InitiateResult> {
+  const engine = new WorkflowEngine(client)
+
+  const { template, steps: templateSteps } = await engine.loadTemplate(params.workflowType)
+  const baseSteps = templateSteps.filter((s) => !s.is_dynamic)
+
+  const firstBaseStep = baseSteps[0]
+  if (!firstBaseStep) throw new Error('Workflow template has no base steps')
+
+  const instanceRes = await client.query<WorkflowInstanceRow>(
+    `INSERT INTO workflow_instances
+       (template_id, entity_type, entity_id, workflow_type, current_stage, current_status, initiated_by, initiated_at, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, NOW(), NOW(), NOW())
+     RETURNING *`,
+    [template.id, params.entityType, params.entityId, params.workflowType, firstBaseStep.stage_code, params.initiatedBy],
+  )
+  const instance = instanceRes.rows[0]!
+
+  const inheritedFlags = params.inheritedFlags
+  await client.query(
+    `INSERT INTO workflow_flags
+       (workflow_instance_id, machine_design_change, safety_review_required, qms_review_required, sci_tech_required)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [
+      instance.id,
+      inheritedFlags?.machine_design_change ?? false,
+      inheritedFlags?.safety_review_required ?? false,
+      inheritedFlags?.qms_review_required ?? false,
+      inheritedFlags?.sci_tech_required ?? false,
+    ],
+  )
+
+  const insertedSteps: WorkflowStepRow[] = []
+  for (const tStep of baseSteps) {
+    const roleName = roleNameForStage(tStep.stage_code, tStep.assigned_role)
+    const assignedUserId = await engine.resolveAssigneeByRole(roleName, params.plantId)
+    const step = await engine.insertStep({
+      workflowInstanceId: instance.id,
+      stepOrder: tStep.step_order,
+      stageCode: tStep.stage_code,
+      assignedUserId: assignedUserId ?? '',
+      isDynamic: false,
+      slaHours: tStep.sla_hours,
+      plantId: params.plantId,
+      workflowType: params.workflowType,
+    })
+
+    if (assignedUserId && assignedUserId === params.submitterId) {
+      await client.query(
+        `UPDATE workflow_steps SET status = 'SKIPPED', action_taken_at = NOW() WHERE id = $1`,
+        [step.id],
+      )
+      insertedSteps.push({ ...step, status: 'SKIPPED' })
+    } else {
+      insertedSteps.push(step)
+    }
+  }
+
+  if (inheritedFlags) {
+    const specs = evaluateImplApprovalFlags(inheritedFlags)
+    if (specs.length > 0) {
+      await engine.insertDynamicSteps(instance.id, params.plantId, params.workflowType, specs)
+    }
+  }
+
+  const allCurrentSteps = await client.query<WorkflowStepRow>(
+    `SELECT * FROM workflow_steps WHERE workflow_instance_id = $1 ORDER BY step_order ASC`,
+    [instance.id],
+  )
+  const firstActive = allCurrentSteps.rows.find((s) => s.status !== 'SKIPPED')
+  if (!firstActive) throw new Error('All steps were auto-skipped — no active step found')
+
+  const tStepForFirst = templateSteps.find((t) => t.stage_code === firstActive.stage_code)
+  await engine.activateStep(
+    firstActive.id,
+    params.plantId,
+    params.workflowType,
+    firstActive.stage_code,
+    tStepForFirst?.sla_hours ?? null,
+  )
+
+  await client.query(
+    `UPDATE workflow_instances SET current_stage = $1, updated_at = NOW() WHERE id = $2`,
+    [firstActive.stage_code, instance.id],
+  )
+
+  let firstAssignee: { id: string; full_name: string } | null = null
+  if (firstActive.assigned_user_id) {
+    const uRes = await client.query<{ id: string; full_name: string }>(
+      `SELECT id, full_name FROM users WHERE id = $1`,
+      [firstActive.assigned_user_id],
+    )
+    firstAssignee = uRes.rows[0] ?? null
+  }
+
+  return { instanceId: instance.id, currentStage: firstActive.stage_code, currentStatus: 'PENDING', firstAssignee }
+}
+
+// Public wrapper — owns its own connection and transaction.
+export async function initiateWorkflow(params: InitiateParams): Promise<InitiateResult> {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    const engine = new WorkflowEngine(client)
-
-    const { template, steps: templateSteps } = await engine.loadTemplate(params.workflowType)
-    const baseSteps = templateSteps.filter((s) => !s.is_dynamic)
-
-    const firstBaseStep = baseSteps[0]
-    if (!firstBaseStep) throw new Error('Workflow template has no base steps')
-
-    // Create workflow instance
-    const instanceRes = await client.query<WorkflowInstanceRow>(
-      `INSERT INTO workflow_instances
-         (template_id, entity_type, entity_id, workflow_type, current_stage, current_status, initiated_by, initiated_at, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, NOW(), NOW(), NOW())
-       RETURNING *`,
-      [
-        template.id,
-        params.entityType,
-        params.entityId,
-        params.workflowType,
-        firstBaseStep.stage_code,
-        params.initiatedBy,
-      ],
-    )
-    const instance = instanceRes.rows[0]!
-
-    // Create workflow_flags row
-    const inheritedFlags = params.inheritedFlags
-    await client.query(
-      `INSERT INTO workflow_flags
-         (workflow_instance_id, machine_design_change, safety_review_required, qms_review_required, sci_tech_required)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        instance.id,
-        inheritedFlags?.machine_design_change ?? false,
-        inheritedFlags?.safety_review_required ?? false,
-        inheritedFlags?.qms_review_required ?? false,
-        inheritedFlags?.sci_tech_required ?? false,
-      ],
-    )
-
-    // Insert base steps, applying auto-skip rule
-    const insertedSteps: WorkflowStepRow[] = []
-    for (const tStep of baseSteps) {
-      const roleName = roleNameForStage(tStep.stage_code, tStep.assigned_role)
-      const assignedUserId = await engine.resolveAssigneeByRole(roleName, params.plantId)
-      const step = await engine.insertStep({
-        workflowInstanceId: instance.id,
-        stepOrder: tStep.step_order,
-        stageCode: tStep.stage_code,
-        assignedUserId: assignedUserId ?? '',
-        isDynamic: false,
-        slaHours: tStep.sla_hours,
-        plantId: params.plantId,
-        workflowType: params.workflowType,
-      })
-
-      // Auto-skip: submitter IS the assignee
-      if (assignedUserId && assignedUserId === params.submitterId) {
-        await client.query(
-          `UPDATE workflow_steps SET status = 'SKIPPED', action_taken_at = NOW() WHERE id = $1`,
-          [step.id],
-        )
-        insertedSteps.push({ ...step, status: 'SKIPPED' })
-      } else {
-        insertedSteps.push(step)
-      }
-    }
-
-    // If inherited flags exist, insert dynamic steps now
-    if (inheritedFlags) {
-      const specs = evaluateImplApprovalFlags(inheritedFlags)
-      if (specs.length > 0) {
-        await engine.insertDynamicSteps(instance.id, params.plantId, params.workflowType, specs)
-      }
-    }
-
-    // Find first non-skipped step
-    const allCurrentSteps = await client.query<WorkflowStepRow>(
-      `SELECT * FROM workflow_steps WHERE workflow_instance_id = $1 ORDER BY step_order ASC`,
-      [instance.id],
-    )
-    const firstActive = allCurrentSteps.rows.find((s) => s.status !== 'SKIPPED')
-    if (!firstActive) throw new Error('All steps were auto-skipped — no active step found')
-
-    // Activate the first non-skipped step
-    const tStepForFirst = templateSteps.find((t) => t.stage_code === firstActive.stage_code)
-    await engine.activateStep(
-      firstActive.id,
-      params.plantId,
-      params.workflowType,
-      firstActive.stage_code,
-      tStepForFirst?.sla_hours ?? null,
-    )
-
-    // Update instance current_stage to reflect first active step (may differ if step 1 was skipped)
-    await client.query(
-      `UPDATE workflow_instances SET current_stage = $1, updated_at = NOW() WHERE id = $2`,
-      [firstActive.stage_code, instance.id],
-    )
-
-    // Resolve first assignee name
-    let firstAssignee: { id: string; full_name: string } | null = null
-    if (firstActive.assigned_user_id) {
-      const uRes = await client.query<{ id: string; full_name: string }>(
-        `SELECT id, full_name FROM users WHERE id = $1`,
-        [firstActive.assigned_user_id],
-      )
-      firstAssignee = uRes.rows[0] ?? null
-    }
-
+    const result = await initiateWorkflowWithClient(client, params)
     await client.query('COMMIT')
-    return { instanceId: instance.id, currentStage: firstActive.stage_code, currentStatus: 'PENDING', firstAssignee }
+    return result
   } catch (err) {
     await client.query('ROLLBACK')
     throw err
