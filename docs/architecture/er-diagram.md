@@ -29,7 +29,7 @@ The schema is organized into **six logical domains**:
 
 ```
 ╔══════════════════════════════════════════════════════════════════════════════════════╗
-║                         IDENTITY & RBAC DOMAIN                                     ║
+║                         IDENTITY & RBAC DOMAIN                                       ║
 ╚══════════════════════════════════════════════════════════════════════════════════════╝
 
 ┌──────────────────────────────────┐    ┌─────────────────────────────────────┐
@@ -66,13 +66,13 @@ The schema is organized into **six logical domains**:
                                         └─────────────────────────────────────┘
 
 ╔══════════════════════════════════════════════════════════════════════════════════════╗
-║                       ORG HIERARCHY DOMAIN                                         ║
+║                       ORG HIERARCHY DOMAIN                                           ║
 ╚══════════════════════════════════════════════════════════════════════════════════════╝
 
 ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
 │ plants       │   │ zones        │   │ departments  │   │ functions    │   │ halls        │   │ locations    │
 │──────────────│   │──────────────│   │──────────────│   │──────────────│   │──────────────│   │──────────────│
-│ PK id  UUID  │◄──│ FK plant_id  │◄──│ FK plant_id  │   │ FK dept_id   │◄──│ FK func_id   │◄──│ FK hall_id   │
+│ PK id  UUID  │◄──│ FK plant_id  │◄──│ FK plant_id  │   │ FK dept_id   │◄──│ FK func_id   │◄──│ FK     hall_id│
 │    name      │   │ PK id  UUID  │   │ FK zone_id   │   │ PK id  UUID  │   │ PK id  UUID  │   │ PK id  UUID  │
 │    code      │   │    name      │   │ PK id  UUID  │   │    name      │   │    name      │   │    name      │
 │    address   │   │    code      │   │    name      │   │    code      │   │    code      │   │    code      │
@@ -84,7 +84,7 @@ The schema is organized into **six logical domains**:
     (Approver determination derives from this hierarchy at runtime)
 
 ╔══════════════════════════════════════════════════════════════════════════════════════╗
-║                         MASTER DATA DOMAIN                                         ║
+║                         MASTER DATA DOMAIN                                           ║
 ╚══════════════════════════════════════════════════════════════════════════════════════╝
 
 ┌────────────────────────────┐   ┌────────────────────────────┐   ┌─────────────────────────────────┐
