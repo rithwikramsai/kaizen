@@ -1,0 +1,38 @@
+{
+  "name": "kaizen",
+  "private": true,
+  "version": "0.0.0",
+  "description": "KIET — Kaizen Idea Transformation Excellence platform for ACG",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev:backend": "pnpm --filter @kiet/backend dev",
+    "dev:frontend": "pnpm --filter @kiet/frontend dev",
+    "build": "pnpm -r build",
+    "build:shared": "pnpm --filter @kiet/shared build",
+    "build:backend": "pnpm --filter @kiet/backend build",
+    "build:frontend": "pnpm --filter @kiet/frontend build",
+    "lint": "eslint packages --ext .ts,.tsx",
+    "lint:fix": "eslint packages --ext .ts,.tsx --fix",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,json,css}\"",
+    "format:check": "prettier --check \"packages/**/*.{ts,tsx,json,css}\"",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:migrate": "bash scripts/db-migrate.sh",
+    "db:seed": "bash scripts/db-seed.sh",
+    "db:reset": "bash scripts/db-reset.sh"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  }
+}
