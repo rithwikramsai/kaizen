@@ -6,6 +6,9 @@ import { IdeaSubmitPage } from '../pages/ideas/IdeaSubmitPage.js'
 import { MyIdeasPage } from '../pages/ideas/MyIdeasPage.js'
 import { IdeasListPage } from '../pages/ideas/IdeasListPage.js'
 import { IdeaDetailPage } from '../pages/ideas/IdeaDetailPage.js'
+import { ApprovedQueuePage } from '../pages/kaizens/ApprovedQueuePage.js'
+import { KaizenOnePagerPage } from '../pages/kaizens/KaizenOnePagerPage.js'
+import { ReviewQueuePage } from '../pages/review/ReviewQueuePage.js'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -21,6 +24,9 @@ export const router = createBrowserRouter([
           { path: 'ideas/new', element: <IdeaSubmitPage /> },
           { path: 'ideas/all', element: <IdeasListPage /> },
           { path: 'ideas/:id', element: <IdeaDetailPage /> },
+          { path: 'review', element: <ReviewQueuePage /> },
+          { path: 'kaizens', element: <ApprovedQueuePage /> },
+          { path: 'kaizens/:kaizenId', element: <KaizenOnePagerPage /> },
         ],
       },
     ],

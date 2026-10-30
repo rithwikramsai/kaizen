@@ -8,11 +8,15 @@ import {
   processKaizenAction,
   getIdeaWorkflowStatus,
   getKaizenWorkflowStatus,
+  getMyQueue,
 } from '../controllers/workflow.controller.js'
 
 export const workflowRouter: ReturnType<typeof Router> = Router()
 
 workflowRouter.use(authenticate)
+
+// Review queue — items currently assigned to the authenticated user
+workflowRouter.get('/my-queue', requirePermission('CAN_APPROVE_IDEA'), getMyQueue)
 
 // Idea workflow
 workflowRouter.post('/ideas/:ideaId/initiate', requirePermission('CAN_SUBMIT_IDEA'), initiateIdeaWorkflow)

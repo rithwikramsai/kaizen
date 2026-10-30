@@ -613,3 +613,69 @@ async function syncEntityStatus(
     )
   }
 }
+
+// ─── My Review Queue ──────────────────────────────────────────────────────────
+
+export interface ReviewQueueItem {
+  entity_type: 'idea' | 'kaizen'
+  entity_id: string
+  registration_id: string | null
+  title: string
+  submitted_by_name: string | null
+  plant_name: string | null
+  zone_name: string | null
+  stage_code: string
+  sla_due_at: string | null
+  workflow_instance_id: string
+}
+
+export async function getMyReviewQueue(actorId: string): Promise<ReviewQueueItem[]> {
+  const res = await pool.query<{
+    entity_type: string
+    entity_id: string
+    registration_id: string | null
+    title: string
+    submitted_by_name: string | null
+    plant_name: string | null
+    zone_name: string | null
+    stage_code: string
+    sla_due_at: Date | null
+    workflow_instance_id: string
+  }>(
+    `SELECT
+       wi.entity_type,
+       wi.entity_id,
+       COALESCE(i.registration_id, k.kaizen_id)    AS registration_id,
+       COALESCE(i.title, k.title)                   AS title,
+       us.full_name                                  AS submitted_by_name,
+       p.name                                        AS plant_name,
+       z.name                                        AS zone_name,
+       ws.stage_code,
+       ws.sla_due_at,
+       wi.id                                         AS workflow_instance_id
+     FROM workflow_steps ws
+     JOIN workflow_instances wi ON wi.id = ws.workflow_instance_id
+     LEFT JOIN ideas  i  ON wi.entity_type = 'idea'   AND wi.entity_id = i.id
+     LEFT JOIN kaizens k ON wi.entity_type = 'kaizen' AND wi.entity_id = k.id
+     LEFT JOIN ideas  ki ON k.idea_id = ki.id
+     LEFT JOIN users  us ON us.id = COALESCE(i.submitted_by, k.implementation_owner)
+     LEFT JOIN plants p  ON p.id  = COALESCE(i.plant_id, ki.plant_id)
+     LEFT JOIN zones  z  ON z.id  = COALESCE(i.zone_id,  ki.zone_id)
+     WHERE ws.assigned_user_id = $1 AND ws.status = 'PENDING'
+     ORDER BY ws.sla_due_at ASC NULLS LAST, ws.created_at ASC`,
+    [actorId],
+  )
+
+  return res.rows.map((row) => ({
+    entity_type: row.entity_type as 'idea' | 'kaizen',
+    entity_id: row.entity_id,
+    registration_id: row.registration_id,
+    title: row.title,
+    submitted_by_name: row.submitted_by_name,
+    plant_name: row.plant_name,
+    zone_name: row.zone_name,
+    stage_code: row.stage_code,
+    sla_due_at: row.sla_due_at ? row.sla_due_at.toISOString() : null,
+    workflow_instance_id: row.workflow_instance_id,
+  }))
+}
