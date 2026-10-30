@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getIdea, deleteIdea } from '../../api/ideas.js'
+import { getIdea, deleteIdea, getIdeaWorkflowStatus, submitIdeaWorkflowAction } from '../../api/ideas.js'
 import { WorkflowTimeline } from '../../components/WorkflowTimeline.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import { useToast } from '../../hooks/useToast.js'
@@ -37,10 +38,49 @@ export function IdeaDetailPage() {
   const queryClient = useQueryClient()
   const { addToast } = useToast()
 
+  const [actionComment, setActionComment] = useState('')
+  const [commentError, setCommentError] = useState(false)
+  const [flags, setFlags] = useState({ safety_review_required: false, qms_review_required: false, machine_design_change: false })
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ['idea', id],
     queryFn: () => getIdea(id!),
     enabled: !!id,
+  })
+
+  const idea = data?.data
+  const hasWorkflow = !!idea?.workflow_instance_id
+
+  const { data: wfStatus } = useQuery({
+    queryKey: ['idea-workflow-status', id],
+    queryFn: () => getIdeaWorkflowStatus(id!),
+    enabled: !!id && hasWorkflow,
+  })
+
+  // Find the step currently assigned to this user that is PENDING
+  const myPendingStep = wfStatus?.steps.find(
+    (s) => s.assigned_to.id === user?.id && s.status === 'PENDING',
+  )
+  const isHodStep = myPendingStep?.stage_code === 'HOD_REVIEW'
+
+  const actionMutation = useMutation({
+    mutationFn: (payload: { action: 'APPROVE' | 'RETURN' | 'REJECT' }) =>
+      submitIdeaWorkflowAction(id!, {
+        ...payload,
+        comment: actionComment.trim() || undefined,
+        flags: isHodStep ? flags : undefined,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['idea', id] })
+      void queryClient.invalidateQueries({ queryKey: ['idea-workflow-status', id] })
+      void queryClient.invalidateQueries({ queryKey: ['idea-timeline', id] })
+      void queryClient.invalidateQueries({ queryKey: ['my-ideas'] })
+      void queryClient.invalidateQueries({ queryKey: ['my-review-queue'] })
+      setActionComment('')
+      setCommentError(false)
+      addToast('Action submitted successfully', 'success')
+    },
+    onError: (err: Error) => addToast(err.message, 'error'),
   })
 
   const deleteMutation = useMutation({
@@ -76,10 +116,10 @@ export function IdeaDetailPage() {
     )
   }
 
-  const idea = data.data
-  const isOwner = user?.id === idea.submitted_by?.id
-  const isDraft = idea.status === 'DRAFT'
-  const sc = STATUS_CONFIG[idea.status] ?? STATUS_CONFIG['DRAFT']!
+  const ideaData = data.data
+  const isOwner = user?.id === ideaData.submitted_by?.id
+  const isDraft = ideaData.status === 'DRAFT'
+  const sc = STATUS_CONFIG[ideaData.status] ?? STATUS_CONFIG['DRAFT']!
 
   const handleDelete = () => {
     if (confirm('Delete this idea? This cannot be undone.')) {
@@ -109,47 +149,47 @@ export function IdeaDetailPage() {
               <div className="flex items-start gap-4 mb-5">
                 <div className="flex-1">
                   <span className="text-[11px] font-mono text-slate-500 bg-white/5 border border-white/8 px-2 py-0.5 rounded-md inline-block mb-2">
-                    {idea.registration_id ?? 'DRAFT'}
+                    {ideaData.registration_id ?? 'DRAFT'}
                   </span>
-                  <h1 className="text-xl font-bold text-white leading-snug">{idea.title}</h1>
+                  <h1 className="text-xl font-bold text-white leading-snug">{ideaData.title}</h1>
                 </div>
                 <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 ${sc.cls}`}>
                   <span className={`w-2 h-2 rounded-full ${sc.dot}`} />
                   {sc.label}
                 </span>
               </div>
-              <ContentSection label="Description" value={idea.description} />
+              <ContentSection label="Description" value={ideaData.description} />
             </div>
 
             {/* Problem / Idea content */}
             <div className="glass rounded-2xl p-6 space-y-5">
-              <ContentSection label="Problem Statement" value={idea.problem_statement} />
-              {idea.proposed_solution && (
+              <ContentSection label="Problem Statement" value={ideaData.problem_statement} />
+              {ideaData.proposed_solution && (
                 <>
                   <div className="border-t border-white/5" />
-                  <ContentSection label="Proposed Solution" value={idea.proposed_solution} />
+                  <ContentSection label="Proposed Solution" value={ideaData.proposed_solution} />
                 </>
               )}
-              {idea.expected_benefits && (
+              {ideaData.expected_benefits && (
                 <>
                   <div className="border-t border-white/5" />
-                  <ContentSection label="Expected Benefits" value={idea.expected_benefits} />
+                  <ContentSection label="Expected Benefits" value={ideaData.expected_benefits} />
                 </>
               )}
-              {idea.remarks && (
+              {ideaData.remarks && (
                 <>
                   <div className="border-t border-white/5" />
-                  <ContentSection label="Remarks" value={idea.remarks} />
+                  <ContentSection label="Remarks" value={ideaData.remarks} />
                 </>
               )}
             </div>
 
             {/* Tags */}
-            {idea.tags && idea.tags.length > 0 && (
+            {ideaData.tags && ideaData.tags.length > 0 && (
               <div className="glass rounded-2xl p-5">
                 <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-3">Tags</p>
                 <div className="flex flex-wrap gap-2">
-                  {idea.tags.map((tag) => (
+                  {ideaData.tags.map((tag) => (
                     <span
                       key={tag.id}
                       style={{
@@ -167,11 +207,11 @@ export function IdeaDetailPage() {
             )}
 
             {/* Attachments */}
-            {idea.attachments && idea.attachments.length > 0 && (
+            {ideaData.attachments && ideaData.attachments.length > 0 && (
               <div className="glass rounded-2xl p-5">
                 <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-3">Attachments</p>
                 <div className="space-y-2">
-                  {idea.attachments.map((att) => (
+                  {ideaData.attachments.map((att) => (
                     <div key={att.file_id} className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3 border border-white/5">
                       <span className="text-indigo-400"><PaperclipIcon /></span>
                       <div className="flex-1 min-w-0">
@@ -211,28 +251,103 @@ export function IdeaDetailPage() {
             <div className="glass rounded-2xl p-5">
               <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-4">Details</p>
               <div className="space-y-2.5">
-                <MetaRow label="Submitted By" value={idea.is_anonymous ? 'Anonymous' : (idea.submitted_by?.full_name ?? '—')} />
-                <MetaRow label="Plant"      value={idea.plant?.name} />
-                <MetaRow label="Zone"       value={idea.zone?.name} />
-                <MetaRow label="Department" value={idea.department?.name} />
-                {idea.function   && <MetaRow label="Function"     value={idea.function.name} />}
-                {idea.hall       && <MetaRow label="Hall"         value={idea.hall.name} />}
-                {idea.location   && <MetaRow label="Location"     value={idea.location.name} />}
-                <MetaRow label="Category"   value={idea.category?.name} />
-                {idea.sub_category && <MetaRow label="Sub-Category" value={idea.sub_category.name} />}
+                <MetaRow label="Submitted By" value={ideaData.is_anonymous ? 'Anonymous' : (ideaData.submitted_by?.full_name ?? '—')} />
+                <MetaRow label="Plant"      value={ideaData.plant?.name} />
+                <MetaRow label="Zone"       value={ideaData.zone?.name} />
+                <MetaRow label="Department" value={ideaData.department?.name} />
+                {ideaData.function   && <MetaRow label="Function"     value={ideaData.function.name} />}
+                {ideaData.hall       && <MetaRow label="Hall"         value={ideaData.hall.name} />}
+                {ideaData.location   && <MetaRow label="Location"     value={ideaData.location.name} />}
+                <MetaRow label="Category"   value={ideaData.category?.name} />
+                {ideaData.sub_category && <MetaRow label="Sub-Category" value={ideaData.sub_category.name} />}
                 <MetaRow
                   label="Submitted"
                   value={
-                    idea.submitted_at
-                      ? new Date(idea.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                    ideaData.submitted_at
+                      ? new Date(ideaData.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                       : '—'
                   }
                 />
               </div>
             </div>
 
+            {/* Workflow action panel — only visible when current user is the assigned reviewer */}
+            {myPendingStep && (
+              <div className="glass rounded-2xl p-5 border border-indigo-500/20">
+                <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest mb-4">
+                  Your Review — {myPendingStep.stage_code.replace(/_/g, ' ')}
+                </p>
+
+                {/* HOD flags */}
+                {isHodStep && (
+                  <div className="mb-4 space-y-2">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2">Set Flags</p>
+                    {[
+                      { key: 'safety_review_required', label: 'Safety Review Required' },
+                      { key: 'qms_review_required',    label: 'QMS Review Required' },
+                      { key: 'machine_design_change',  label: 'Machine Design Change' },
+                    ].map(({ key, label }) => (
+                      <label key={key} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={flags[key as keyof typeof flags]}
+                          onChange={(e) => setFlags((f) => ({ ...f, [key]: e.target.checked }))}
+                          className="w-4 h-4 rounded accent-indigo-500"
+                        />
+                        <span className="text-sm text-slate-300">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {/* Comment */}
+                <textarea
+                  value={actionComment}
+                  onChange={(e) => { setActionComment(e.target.value); if (e.target.value.trim()) setCommentError(false) }}
+                  placeholder="Add a comment (required for Return / Reject)"
+                  rows={3}
+                  className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none transition-all resize-none mb-1 ${commentError ? 'border-red-500/60 focus:border-red-500' : 'border-white/10 focus:border-indigo-500/50'}`}
+                />
+                {commentError && (
+                  <p className="text-xs text-red-400 mb-3">A comment is required when returning or rejecting.</p>
+                )}
+                {!commentError && <div className="mb-3" />}
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => actionMutation.mutate({ action: 'APPROVE' })}
+                    disabled={actionMutation.isPending}
+                    className="flex-1 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!actionComment.trim()) { setCommentError(true); return }
+                      actionMutation.mutate({ action: 'RETURN' })
+                    }}
+                    disabled={actionMutation.isPending}
+                    className="flex-1 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:text-amber-300 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                  >
+                    Return
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!actionComment.trim()) { setCommentError(true); return }
+                      actionMutation.mutate({ action: 'REJECT' })
+                    }}
+                    disabled={actionMutation.isPending}
+                    className="flex-1 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Workflow timeline */}
-            {idea.workflow_instance_id && (
+            {ideaData.workflow_instance_id && (
               <div className="glass rounded-2xl p-5">
                 <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-4">Workflow</p>
                 <WorkflowTimeline ideaId={id!} />

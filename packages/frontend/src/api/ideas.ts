@@ -106,3 +106,61 @@ export async function deleteIdea(id: string): Promise<void> {
 export async function getIdeaTimeline(id: string): Promise<{ success: true; data: TimelineEntry[] }> {
   return authFetch<{ success: true; data: TimelineEntry[] }>(`/ideas/${id}/timeline`)
 }
+
+export interface WorkflowStep {
+  step_order: number
+  stage_code: string
+  status: string
+  assigned_to: { id: string; full_name: string }
+  action_taken_at: string | null
+  sla_due_at: string | null
+}
+
+export interface WorkflowStatus {
+  workflow_instance_id: string
+  workflow_type: string
+  current_stage: string
+  current_status: string
+  steps: WorkflowStep[]
+}
+
+export async function getIdeaWorkflowStatus(id: string): Promise<WorkflowStatus> {
+  const res = await authFetch<{ success: true; data: WorkflowStatus }>(`/workflow/ideas/${id}/status`)
+  return res.data
+}
+
+export interface ReviewQueueItem {
+  entity_type: 'idea' | 'kaizen'
+  entity_id: string
+  registration_id: string | null
+  title: string
+  submitted_by_name: string | null
+  plant_name: string | null
+  zone_name: string | null
+  stage_code: string
+  sla_due_at: string | null
+  workflow_instance_id: string
+}
+
+export async function getMyReviewQueue(): Promise<ReviewQueueItem[]> {
+  const res = await authFetch<{ success: true; data: ReviewQueueItem[] }>('/workflow/my-queue')
+  return res.data
+}
+
+export async function submitIdeaWorkflowAction(
+  id: string,
+  payload: {
+    action: 'APPROVE' | 'RETURN' | 'REJECT'
+    comment?: string
+    flags?: {
+      safety_review_required?: boolean
+      qms_review_required?: boolean
+      machine_design_change?: boolean
+    }
+  },
+): Promise<void> {
+  await authFetch<{ success: true; data: unknown }>(`/workflow/ideas/${id}/action`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}

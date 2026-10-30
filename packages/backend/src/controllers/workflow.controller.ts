@@ -5,6 +5,7 @@ import {
   initiateWorkflow,
   processWorkflowAction,
   getWorkflowStatus,
+  getMyReviewQueue,
 } from '../services/workflow.service.js'
 
 function handleError(res: Response, err: unknown): void {
@@ -151,6 +152,17 @@ export async function getKaizenWorkflowStatus(req: Request, res: Response): Prom
   try {
     const { kaizenId } = req.params
     const result = await getWorkflowStatus('kaizen', kaizenId!)
+    sendSuccess(res, result)
+  } catch (err) {
+    handleError(res, err)
+  }
+}
+
+// GET /workflow/my-queue
+export async function getMyQueue(req: Request, res: Response): Promise<void> {
+  try {
+    const actorId = req.user!.id
+    const result = await getMyReviewQueue(actorId)
     sendSuccess(res, result)
   } catch (err) {
     handleError(res, err)

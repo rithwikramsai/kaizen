@@ -36,6 +36,23 @@ function GridIcon() {
   )
 }
 
+function InboxIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+      <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" />
+    </svg>
+  )
+}
+
+function WrenchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+    </svg>
+  )
+}
+
 function BellIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -110,7 +127,7 @@ function Avatar({ name }: { name: string }) {
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export function Layout() {
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -180,6 +197,10 @@ export function Layout() {
             <NavItem to="/ideas/new" icon={<SparklesIcon />} label="Submit Idea" />
             <NavItem to="/ideas" icon={<DocumentIcon />} label="My Ideas" end />
             <NavItem to="/ideas/all" icon={<GridIcon />} label="All Ideas" />
+            {hasPermission('CAN_APPROVE_IDEA') && (
+              <NavItem to="/review" icon={<InboxIcon />} label="Review Queue" />
+            )}
+            <NavItem to="/kaizens" icon={<WrenchIcon />} label="Implementation" />
           </nav>
 
           {/* Bottom metadata */}
@@ -187,9 +208,9 @@ export function Layout() {
             <div className="text-[10px] text-slate-600 font-medium uppercase tracking-widest mb-1">Current Phase</div>
             <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-              <span className="text-[11px] text-indigo-400 font-medium">Phase 5 — Ideas</span>
+              <span className="text-[11px] text-indigo-400 font-medium">Phase 6 — Implementation</span>
             </div>
-            <div className="text-[10px] text-slate-700 mt-2">v0.5.0</div>
+            <div className="text-[10px] text-slate-700 mt-2">v0.6.0</div>
           </div>
 
         </aside>
