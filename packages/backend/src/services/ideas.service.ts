@@ -33,18 +33,19 @@ interface IdeaRow {
 }
 
 interface CreateIdeaParams {
-  title: string
-  description: string
+  // Idea content (new business fields)
   problem_statement: string
-  proposed_solution: string
-  expected_benefits?: string
-  is_anonymous?: boolean
+  description: string        // "Idea Description" in the form
+  remarks?: string
+  // Operational location (idea context, drives workflow routing)
   plant_id: string
   zone_id: string
   department_id: string
   function_id?: string
   hall_id?: string
   location_id?: string
+  value_stream?: string
+  // Classification
   category_id: string
   sub_category_id?: string
   tag_ids?: string[]
@@ -104,13 +105,19 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
 
     const registrationId = await generateRegistrationId(plantCode)
 
+    // Auto-generate title from the first 100 chars of problem_statement
+    const autoTitle = params.problem_statement.slice(0, 100).trim()
+
     // Insert idea
+    // Normalize empty strings to null for optional UUID/text columns
+    const orNull = (v: string | undefined) => (v && v.trim() !== '' ? v : null)
+
     const ideaRes = await client.query<IdeaRow>(
       `INSERT INTO ideas
          (registration_id, submitted_by, plant_id, zone_id, department_id, function_id, hall_id, location_id,
-          category_id, sub_category_id, title, description, problem_statement, proposed_solution,
-          expected_benefits, is_anonymous, status, submitted_at, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'SUBMITTED',NOW(),NOW(),NOW())
+          value_stream, category_id, sub_category_id, title, description, problem_statement, remarks,
+          status, submitted_at, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'SUBMITTED',NOW(),NOW(),NOW())
        RETURNING *`,
       [
         registrationId,
@@ -118,17 +125,16 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
         params.plant_id,
         params.zone_id,
         params.department_id,
-        params.function_id ?? null,
-        params.hall_id ?? null,
-        params.location_id ?? null,
+        orNull(params.function_id),
+        orNull(params.hall_id),
+        orNull(params.location_id),
+        orNull(params.value_stream),
         params.category_id,
-        params.sub_category_id ?? null,
-        params.title,
+        orNull(params.sub_category_id),
+        autoTitle,
         params.description,
         params.problem_statement,
-        params.proposed_solution,
-        params.expected_benefits ?? null,
-        params.is_anonymous ?? false,
+        orNull(params.remarks),
       ],
     )
     const idea = ideaRes.rows[0]!
@@ -160,6 +166,7 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
       entityId: idea.id,
       initiatedBy: params.submittedBy,
       plantId: params.plant_id,
+      zoneId: params.zone_id,
       submitterId: params.submittedBy,
     })
 
@@ -167,7 +174,7 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
     await client.query(
       `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload, performed_at)
        VALUES ($1, 'IDEA_SUBMITTED', 'idea', $2, $3, NOW())`,
-      [params.submittedBy, idea.id, JSON.stringify({ registration_id: registrationId, title: params.title })],
+      [params.submittedBy, idea.id, JSON.stringify({ registration_id: registrationId, title: autoTitle })],
     )
 
     await client.query('COMMIT')
@@ -321,6 +328,10 @@ export async function getIdeaById(
        u.id AS submitter_id, u.full_name AS submitter_name,
        p.id AS plant_id_ref, p.name AS plant_name,
        z.id AS zone_id_ref, z.name AS zone_name,
+       d.id AS dept_id_ref, d.name AS dept_name,
+       fn.id AS func_id_ref, fn.name AS func_name,
+       h.id AS hall_id_ref, h.name AS hall_name,
+       lo.id AS loc_id_ref, lo.name AS loc_name,
        c.id AS category_id_ref, c.name AS category_name,
        sc.id AS sub_category_id_ref, sc.name AS sub_category_name,
        wi.id AS workflow_instance_id, wi.current_stage, wi.current_status
@@ -328,6 +339,10 @@ export async function getIdeaById(
      JOIN users u ON u.id = i.submitted_by
      JOIN plants p ON p.id = i.plant_id
      JOIN zones z ON z.id = i.zone_id
+     LEFT JOIN departments d ON d.id = i.department_id
+     LEFT JOIN functions fn ON fn.id = i.function_id
+     LEFT JOIN halls h ON h.id = i.hall_id
+     LEFT JOIN locations lo ON lo.id = i.location_id
      JOIN categories c ON c.id = i.category_id
      LEFT JOIN sub_categories sc ON sc.id = i.sub_category_id
      LEFT JOIN workflow_instances wi ON wi.entity_type = 'idea' AND wi.entity_id = i.id
@@ -371,24 +386,29 @@ export async function getIdeaById(
     title: row.title as string,
     description: row.description as string,
     problem_statement: row.problem_statement as string,
-    proposed_solution: row.proposed_solution as string,
-    expected_benefits: row.expected_benefits as string | null,
+    proposed_solution: (row.proposed_solution as string | null) ?? null,
+    expected_benefits: (row.expected_benefits as string | null) ?? null,
+    value_stream: (row.value_stream as string | null) ?? null,
+    remarks: (row.remarks as string | null) ?? null,
     is_anonymous: row.is_anonymous as boolean,
     status: row.status as string,
     submitted_by: row.is_anonymous
       ? { id: row.submitter_id as string, full_name: 'Anonymous' }
       : { id: row.submitter_id as string, full_name: row.submitter_name as string },
-    plant: { id: row.plant_id_ref as string, name: row.plant_name as string },
-    zone: { id: row.zone_id_ref as string, name: row.zone_name as string },
-    category: { id: row.category_id_ref as string, name: row.category_name as string },
+    plant:       { id: row.plant_id_ref as string,   name: row.plant_name as string },
+    zone:        { id: row.zone_id_ref as string,    name: row.zone_name as string },
+    department:  row.dept_id_ref  ? { id: row.dept_id_ref as string,  name: row.dept_name as string }  : null,
+    function:    row.func_id_ref  ? { id: row.func_id_ref as string,  name: row.func_name as string }  : null,
+    hall:        row.hall_id_ref  ? { id: row.hall_id_ref as string,  name: row.hall_name as string }  : null,
+    location:    row.loc_id_ref   ? { id: row.loc_id_ref as string,   name: row.loc_name as string }   : null,
+    category:    { id: row.category_id_ref as string, name: row.category_name as string },
     sub_category: row.sub_category_id_ref
       ? { id: row.sub_category_id_ref as string, name: row.sub_category_name as string }
       : null,
-    workflow: {
-      instance_id: row.workflow_instance_id as string | null,
-      current_stage: row.current_stage as string | null,
-      current_status: row.current_status as string | null,
-    },
+    // Flat workflow fields (match IdeaDetail frontend interface)
+    workflow_instance_id: (row.workflow_instance_id as string | null) ?? null,
+    current_stage:  (row.current_stage as string | null) ?? null,
+    current_status: (row.current_status as string | null) ?? null,
     attachments: attachmentsRes.rows.map((a) => ({
       id: a.id as string,
       file_id: a.file_id as string,

@@ -121,15 +121,25 @@ export function IdeaDetailPage() {
               <ContentSection label="Description" value={idea.description} />
             </div>
 
-            {/* Problem / Solution */}
+            {/* Problem / Idea content */}
             <div className="glass rounded-2xl p-6 space-y-5">
               <ContentSection label="Problem Statement" value={idea.problem_statement} />
-              <div className="border-t border-white/5" />
-              <ContentSection label="Proposed Solution" value={idea.proposed_solution} />
+              {idea.proposed_solution && (
+                <>
+                  <div className="border-t border-white/5" />
+                  <ContentSection label="Proposed Solution" value={idea.proposed_solution} />
+                </>
+              )}
               {idea.expected_benefits && (
                 <>
                   <div className="border-t border-white/5" />
                   <ContentSection label="Expected Benefits" value={idea.expected_benefits} />
+                </>
+              )}
+              {idea.remarks && (
+                <>
+                  <div className="border-t border-white/5" />
+                  <ContentSection label="Remarks" value={idea.remarks} />
                 </>
               )}
             </div>

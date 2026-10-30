@@ -45,6 +45,61 @@ export interface UpdateUserInput {
   email?: string | undefined
 }
 
+export interface MyProfileResult {
+  id: string
+  employee_id: string
+  email: string
+  full_name: string
+  home_plant: { id: string; name: string; code: string } | null
+  home_zone: { id: string; name: string } | null
+  home_department: { id: string; name: string } | null
+  home_function: { id: string; name: string } | null
+  home_hall: { id: string; name: string } | null
+}
+
+export async function getMyProfile(userId: string): Promise<MyProfileResult> {
+  const res = await pool.query<{
+    id: string; employee_id: string; email: string; full_name: string
+    plant_id: string | null; plant_name: string | null; plant_code: string | null
+    zone_id: string | null; zone_name: string | null
+    dept_id: string | null; dept_name: string | null
+    func_id: string | null; func_name: string | null
+    hall_id: string | null; hall_name: string | null
+  }>(
+    `SELECT u.id, u.employee_id, u.email, u.full_name,
+       p.id AS plant_id, p.name AS plant_name, p.code AS plant_code,
+       z.id AS zone_id, z.name AS zone_name,
+       d.id AS dept_id, d.name AS dept_name,
+       f.id AS func_id, f.name AS func_name,
+       h.id AS hall_id, h.name AS hall_name
+     FROM users u
+     LEFT JOIN user_roles ur ON ur.user_id = u.id
+     LEFT JOIN plants p ON p.id = ur.plant_id
+     LEFT JOIN zones z ON z.id = ur.zone_id
+     LEFT JOIN departments d ON d.id = ur.department_id
+     LEFT JOIN functions f ON f.id = ur.function_id
+     LEFT JOIN halls h ON h.id = ur.hall_id
+     WHERE u.id = $1
+     ORDER BY ur.granted_at ASC
+     LIMIT 1`,
+    [userId],
+  )
+  const row = res.rows[0]
+  if (!row) throw new ServiceError(404, ErrorCodes.NOT_FOUND, 'User not found')
+
+  return {
+    id: row.id,
+    employee_id: row.employee_id,
+    email: row.email,
+    full_name: row.full_name,
+    home_plant: row.plant_id ? { id: row.plant_id, name: row.plant_name!, code: row.plant_code! } : null,
+    home_zone: row.zone_id ? { id: row.zone_id, name: row.zone_name! } : null,
+    home_department: row.dept_id ? { id: row.dept_id, name: row.dept_name! } : null,
+    home_function: row.func_id ? { id: row.func_id, name: row.func_name! } : null,
+    home_hall: row.hall_id ? { id: row.hall_id, name: row.hall_name! } : null,
+  }
+}
+
 export async function listUsers(
   pagination: ParsedPagination,
   search?: string,

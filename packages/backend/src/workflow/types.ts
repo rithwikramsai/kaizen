@@ -62,6 +62,7 @@ export interface InitiateParams {
   entityType: 'idea' | 'kaizen'
   entityId: string
   plantId: string
+  zoneId?: string | null
   initiatedBy: string
   submitterId: string
   inheritedFlags?: {
