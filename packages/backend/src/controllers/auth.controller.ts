@@ -14,7 +14,7 @@ const refreshSchema = z.object({
 })
 
 const logoutSchema = z.object({
-  refresh_token: z.string().min(1, 'refresh_token is required'),
+  refresh_token: z.string().optional(),
 })
 
 function handleError(res: Response, err: unknown): void {
@@ -58,14 +58,13 @@ export async function refresh(req: Request, res: Response): Promise<void> {
 }
 
 export async function logout(req: Request, res: Response): Promise<void> {
-  const parsed = logoutSchema.safeParse(req.body)
-  if (!parsed.success) {
-    sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'refresh_token is required')
-    return
-  }
+  const parsed = logoutSchema.safeParse(req.body ?? {})
+  const refreshToken = parsed.success ? (parsed.data.refresh_token ?? '') : ''
 
   try {
-    await authService.logout(parsed.data.refresh_token)
+    if (refreshToken) {
+      await authService.logout(refreshToken)
+    }
     sendSuccess(res, null)
   } catch (err) {
     handleError(res, err)

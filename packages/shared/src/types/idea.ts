@@ -40,20 +40,22 @@ export interface IdeaListItem {
 }
 
 export interface CreateIdeaRequest {
-  title: string
-  description: string
-  problem_statement: string
-  proposed_solution: string
-  expected_benefits?: string
-  is_anonymous?: boolean
+  // Operational location (drives workflow routing)
   plant_id: string
   zone_id: string
   department_id: string
   function_id?: string
   hall_id?: string
   location_id?: string
+  value_stream?: string
+  // Classification
   category_id: string
   sub_category_id?: string
   tag_ids?: string[]
+  // Idea content
+  problem_statement: string
+  description: string
+  remarks?: string
+  // Attachments
   attachment_file_ids?: string[]
 }

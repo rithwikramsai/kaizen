@@ -62,7 +62,7 @@ export async function initiateWorkflowWithClient(
   const insertedSteps: WorkflowStepRow[] = []
   for (const tStep of baseSteps) {
     const roleName = roleNameForStage(tStep.stage_code, tStep.assigned_role)
-    const assignedUserId = await engine.resolveAssigneeByRole(roleName, params.plantId)
+    const assignedUserId = await engine.resolveAssigneeByRole(roleName, params.plantId, params.zoneId)
     const step = await engine.insertStep({
       workflowInstanceId: instance.id,
       stepOrder: tStep.step_order,
@@ -88,7 +88,7 @@ export async function initiateWorkflowWithClient(
   if (inheritedFlags) {
     const specs = evaluateImplApprovalFlags(inheritedFlags)
     if (specs.length > 0) {
-      await engine.insertDynamicSteps(instance.id, params.plantId, params.workflowType, specs)
+      await engine.insertDynamicSteps(instance.id, params.plantId, params.workflowType, specs, params.zoneId)
     }
   }
 

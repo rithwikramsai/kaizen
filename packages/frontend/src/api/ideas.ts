@@ -7,8 +7,10 @@ export interface IdeaDetail {
   title: string
   description: string
   problem_statement: string
-  proposed_solution: string
+  proposed_solution: string | null
   expected_benefits: string | null
+  value_stream: string | null
+  remarks: string | null
   is_anonymous: boolean
   status: string
   submitted_at: string | null
@@ -17,15 +19,15 @@ export interface IdeaDetail {
   submitted_by: { id: string; full_name: string } | null
   plant: { id: string; name: string }
   zone: { id: string; name: string }
-  department: { id: string; name: string }
+  department: { id: string; name: string } | null
   function: { id: string; name: string } | null
   hall: { id: string; name: string } | null
   location: { id: string; name: string } | null
   category: { id: string; name: string }
   sub_category: { id: string; name: string } | null
-  current_stage: string
-  current_status: string
   workflow_instance_id: string | null
+  current_stage: string | null
+  current_status: string | null
   attachments: { file_id: string; file_name: string; content_type: string }[]
   tags: { id: string; name: string; color: string }[]
 }

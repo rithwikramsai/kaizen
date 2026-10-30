@@ -30,7 +30,21 @@ export class WorkflowEngine {
     return { template, steps: sRes.rows }
   }
 
-  async resolveAssigneeByRole(roleName: string, plantId: string): Promise<string | null> {
+  async resolveAssigneeByRole(roleName: string, plantId: string, zoneId?: string | null): Promise<string | null> {
+    // When a zone is specified, prefer the role-holder assigned to that zone
+    if (zoneId) {
+      const zoneRes = await this.client.query<{ user_id: string }>(
+        `SELECT ur.user_id
+         FROM user_roles ur
+         JOIN roles r ON r.id = ur.role_id
+         WHERE r.name = $1 AND ur.plant_id = $2 AND ur.zone_id = $3
+         ORDER BY ur.granted_at ASC
+         LIMIT 1`,
+        [roleName, plantId, zoneId],
+      )
+      if (zoneRes.rows[0]) return zoneRes.rows[0].user_id
+    }
+    // Fall back to plant-wide lookup
     const res = await this.client.query<{ user_id: string }>(
       `SELECT ur.user_id
        FROM user_roles ur
@@ -84,10 +98,11 @@ export class WorkflowEngine {
     plantId: string,
     workflowType: string,
     specs: DynamicStepSpec[],
+    zoneId?: string | null,
   ): Promise<WorkflowStepRow[]> {
     const inserted: WorkflowStepRow[] = []
     for (const spec of specs) {
-      const assignedUserId = await this.resolveAssigneeByRole(spec.assigned_role, plantId)
+      const assignedUserId = await this.resolveAssigneeByRole(spec.assigned_role, plantId, zoneId)
       const row = await this.insertStep({
         workflowInstanceId,
         stepOrder: spec.step_order,

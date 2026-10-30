@@ -26,6 +26,15 @@ const assignRoleSchema = z.object({
   plant_id: z.string().uuid(),
 })
 
+export async function getMe(req: Request, res: Response): Promise<void> {
+  try {
+    const profile = await usersService.getMyProfile(req.user!.id)
+    sendSuccess(res, profile)
+  } catch (err) {
+    handleError(res, err)
+  }
+}
+
 function handleError(res: Response, err: unknown): void {
   if (err instanceof ServiceError) {
     sendError(res, err.httpStatus, err.code, err.message)

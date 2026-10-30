@@ -8,6 +8,7 @@ const router: ReturnType<typeof Router> = Router()
 const canManageUsers = [authenticate, requirePermission('CAN_MANAGE_USERS')]
 const canManageSystem = [authenticate, requirePermission('CAN_MANAGE_SYSTEM')]
 
+router.get('/users/me', authenticate, users.getMe)
 router.get('/users', ...canManageUsers, users.listUsers)
 router.post('/users', ...canManageUsers, users.createUser)
 router.put('/users/:id', ...canManageUsers, users.updateUser)

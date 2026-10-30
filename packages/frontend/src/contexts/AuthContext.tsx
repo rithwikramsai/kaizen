@@ -2,6 +2,7 @@ import { createContext, useEffect, useState, useCallback, type ReactNode } from 
 import { login as apiLogin, logout as apiLogout, type AuthUser } from '../api/auth.js'
 
 const TOKEN_KEY = 'kiet_access_token'
+const REFRESH_KEY = 'kiet_refresh_token'
 const USER_KEY = 'kiet_user'
 
 interface AuthContextValue {
@@ -37,16 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await apiLogin(email, password)
-    const { access_token, user: authUser } = res.data
+    const { access_token, refresh_token, user: authUser } = res.data
     localStorage.setItem(TOKEN_KEY, access_token)
+    localStorage.setItem(REFRESH_KEY, refresh_token)
     localStorage.setItem(USER_KEY, JSON.stringify(authUser))
     setToken(access_token)
     setUser(authUser)
   }, [])
 
   const logout = useCallback(async () => {
-    if (token) await apiLogout(token)
+    const refreshToken = localStorage.getItem(REFRESH_KEY) ?? ''
+    if (token) await apiLogout(token, refreshToken)
     localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(REFRESH_KEY)
     localStorage.removeItem(USER_KEY)
     setToken(null)
     setUser(null)
