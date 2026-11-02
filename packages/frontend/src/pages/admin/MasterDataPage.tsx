@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { authFetch } from '../../api/client.js'
+import { authFetchList } from '../../api/client.js'
 import { PageTransition } from '../../components/PageTransition.js'
 
 type EntityType = 'plants' | 'zones' | 'departments' | 'functions' | 'halls' | 'locations' | 'categories' | 'sub_categories' | 'tags'
@@ -30,7 +30,7 @@ const ENTITIES: { key: EntityType; label: string }[] = [
 ]
 
 function fetchEntity(type: EntityType, page: number): Promise<EntityResult> {
-  return authFetch<EntityResult>(`/master/${type}?page=${page}&page_size=20`)
+  return authFetchList<EntityRow>(`/master/${type}?page=${page}&page_size=20`)
 }
 
 export function MasterDataPage() {

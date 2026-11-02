@@ -22,3 +22,29 @@ export async function authFetch<T>(path: string, options: RequestInit = {}): Pro
 
   return body.data as T
 }
+
+export async function authFetchList<T>(path: string): Promise<{ rows: T[]; total: number }> {
+  const token = localStorage.getItem(TOKEN_KEY)
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
+  const body = (await res.json()) as {
+    success: boolean
+    data?: T[]
+    meta?: { total: number }
+    error?: { code: string; message: string }
+  }
+
+  if (!res.ok) {
+    const msg = body.error?.message ?? `Request failed with status ${res.status}`
+    throw new Error(msg)
+  }
+
+  const rows = body.data ?? []
+  const total = body.meta?.total ?? rows.length
+  return { rows, total }
+}
