@@ -13,6 +13,7 @@ import type {
   DynamicStepSpec,
 } from '../workflow/types.js'
 import type { WorkflowActionResult, WorkflowStatusResponse } from '@kiet/shared'
+import { sendEmailForEvent } from './email/email.service.js'
 
 // ─── Initiate ────────────────────────────────────────────────────────────────
 
@@ -340,6 +341,11 @@ export async function processWorkflowAction(params: {
           })
         }
 
+        void sendEmailForEvent('IDEA_APPROVED', instance.initiated_by, {
+          entityType: instance.entity_type,
+          entityId: instance.entity_id,
+        })
+
         await engine.createAuditLog({
           performedBy: params.actorId,
           action: instance.workflow_type === 'IDEA_APPROVAL' ? 'STEP_APPROVED' : 'KAIZEN_APPROVED',
@@ -369,6 +375,11 @@ export async function processWorkflowAction(params: {
             type: 'STEP_ASSIGNED',
             title: 'A workflow step has been assigned to you',
             body: `You have a pending ${nextStep.stage_code} step to review.`,
+            entityType: instance.entity_type,
+            entityId: instance.entity_id,
+          })
+          void sendEmailForEvent('STEP_ASSIGNED', nextStep.assigned_user_id, {
+            stageCode: nextStep.stage_code,
             entityType: instance.entity_type,
             entityId: instance.entity_id,
           })
@@ -475,6 +486,12 @@ export async function processWorkflowAction(params: {
         type: 'STEP_RETURNED',
         title: 'Your submission has been rejected',
         body: params.comment!,
+        entityType: instance.entity_type,
+        entityId: instance.entity_id,
+      })
+
+      void sendEmailForEvent('IDEA_REJECTED', instance.initiated_by, {
+        comment: params.comment!,
         entityType: instance.entity_type,
         entityId: instance.entity_id,
       })

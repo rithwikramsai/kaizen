@@ -46,7 +46,6 @@ export function LeaderboardPage() {
           </div>
         ) : (
           <>
-            {/* Top 3 podium */}
             {entries.length >= 3 && (
               <div className="grid grid-cols-3 gap-3 mb-6">
                 {entries.slice(0, 3).map((entry, idx) => (
@@ -68,7 +67,6 @@ export function LeaderboardPage() {
               </div>
             )}
 
-            {/* Full table */}
             <div className="glass rounded-2xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
