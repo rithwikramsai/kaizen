@@ -6,7 +6,7 @@ const storageAdapter = new LocalFileStorageAdapter()
 export async function uploadFile(
   file: Express.Multer.File,
   _entityType: string,
-  uploadedBy: string,
+  uploadedBy: string | null,
 ): Promise<{ file_id: string; file_name: string; file_size: number; content_type: string }> {
   const stored = await storageAdapter.store(file)
 

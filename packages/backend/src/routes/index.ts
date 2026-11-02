@@ -11,6 +11,7 @@ import { notificationsRouter } from './notifications.js'
 import { reportsRouter } from './reports.js'
 import { analyticsRouter } from './analytics.js'
 import { adminRouter } from './admin.js'
+import { publicRouter } from './public.js'
 
 const router: ReturnType<typeof Router> = Router()
 
@@ -18,6 +19,7 @@ router.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+router.use('/public', publicRouter)   // unauthenticated — must come before authRouter
 router.use('/auth', authRouter)
 router.use('/', usersRouter)
 router.use('/master', masterRouter)

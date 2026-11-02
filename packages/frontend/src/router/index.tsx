@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from '../components/Layout.js'
 import { ProtectedRoute } from '../components/ProtectedRoute.js'
 import { LoginPage } from '../pages/LoginPage.js'
+import { PublicIdeaSubmissionPage } from '../pages/public/PublicIdeaSubmissionPage.js'
 import { IdeaSubmitPage } from '../pages/ideas/IdeaSubmitPage.js'
 import { MyIdeasPage } from '../pages/ideas/MyIdeasPage.js'
 import { IdeasListPage } from '../pages/ideas/IdeasListPage.js'
@@ -28,7 +29,8 @@ import { AuditLogViewerPage } from '../pages/admin/AuditLogViewerPage.js'
 import { SystemHealthPage } from '../pages/admin/SystemHealthPage.js'
 
 export const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login',             element: <LoginPage /> },
+  { path: '/submit-anonymous',  element: <PublicIdeaSubmissionPage /> },
   {
     element: <ProtectedRoute />,
     children: [
