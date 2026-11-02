@@ -53,6 +53,44 @@ function WrenchIcon() {
   )
 }
 
+function TrophyIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="8 21 12 17 16 21" />
+      <line x1="12" y1="17" x2="12" y2="11" />
+      <path d="M7 4H17l-1 6a4 4 0 01-8 0z" />
+      <path d="M5 4h2M17 4h2" />
+    </svg>
+  )
+}
+
+function StarIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  )
+}
+
+function BarChartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  )
+}
+
 function BellIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -201,6 +239,18 @@ export function Layout() {
               <NavItem to="/review" icon={<InboxIcon />} label="Review Queue" />
             )}
             <NavItem to="/kaizens" icon={<WrenchIcon />} label="Implementation" />
+            {(hasPermission('CAN_ASSIGN_REWARD') || hasPermission('CAN_NOMINATE_HIGH_IMPACT') || hasPermission('CAN_VIEW_REPORTS')) && (
+              <NavItem to="/rewards" icon={<TrophyIcon />} label="Rewards" />
+            )}
+            {hasPermission('CAN_RATE_HIGH_IMPACT') && (
+              <NavItem to="/rewards/sc-ratings" icon={<StarIcon />} label="SC Ratings" />
+            )}
+            {(hasPermission('CAN_ASSIGN_REWARD') || hasPermission('CAN_VIEW_REPORTS')) && (
+              <NavItem to="/rewards/history" icon={<ClockIcon />} label="Reward History" />
+            )}
+            {(hasPermission('CAN_ASSIGN_REWARD') || hasPermission('CAN_VIEW_REPORTS')) && (
+              <NavItem to="/rewards/leaderboard" icon={<BarChartIcon />} label="Leaderboard" />
+            )}
           </nav>
 
           {/* Bottom metadata */}
@@ -208,9 +258,9 @@ export function Layout() {
             <div className="text-[10px] text-slate-600 font-medium uppercase tracking-widest mb-1">Current Phase</div>
             <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-              <span className="text-[11px] text-indigo-400 font-medium">Phase 6 — Implementation</span>
+              <span className="text-[11px] text-indigo-400 font-medium">Phase 7 — Rewards &amp; Recognition</span>
             </div>
-            <div className="text-[10px] text-slate-700 mt-2">v0.6.0</div>
+            <div className="text-[10px] text-slate-700 mt-2">v0.7.0</div>
           </div>
 
         </aside>
