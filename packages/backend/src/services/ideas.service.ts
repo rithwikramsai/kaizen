@@ -32,7 +32,7 @@ interface IdeaRow {
   updated_at: Date
 }
 
-interface CreateIdeaParams {
+export interface CreateIdeaParams {
   // Idea content (new business fields)
   problem_statement: string
   description: string        // "Idea Description" in the form

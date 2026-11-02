@@ -1,25 +1,47 @@
-import { Router } from 'express'
-import rateLimit from 'express-rate-limit'
+import { Router, type Request, type Response, type NextFunction } from 'express'
 import * as ctrl from '../controllers/publicIdeas.controller.js'
 
-export const publicRouter: ReturnType<typeof Router> = Router()
+const router: ReturnType<typeof Router> = Router()
 
-const lookupLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'TOO_MANY_REQUESTS', message: 'Too many requests. Try again in 1 hour.' },
-})
+// ─── Simple in-memory sliding-window rate limiter (no external dependency) ───
 
-const submitLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'TOO_MANY_REQUESTS', message: 'Too many submissions. Try again in 1 hour.' },
-})
+interface RateBucket { count: number; resetAt: number }
+const _store = new Map<string, RateBucket>()
 
-publicRouter.get('/master-data',      ctrl.publicMasterData)
-publicRouter.get('/employee-lookup',  lookupLimiter, ctrl.employeeLookup)
-publicRouter.post('/idea-submit',     submitLimiter, ctrl.publicIdeaSubmit)
+function rateLimiter(max: number, windowMs: number) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const key = `${req.ip ?? 'unknown'}:${req.path}`
+    const now  = Date.now()
+    const bucket = _store.get(key)
+
+    if (!bucket || now > bucket.resetAt) {
+      _store.set(key, { count: 1, resetAt: now + windowMs })
+      next()
+      return
+    }
+    if (bucket.count >= max) {
+      res.status(429).json({
+        success: false,
+        error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests — please try again later' },
+      })
+      return
+    }
+    bucket.count++
+    next()
+  }
+}
+
+const lookupLimiter = rateLimiter(60, 60 * 60 * 1000)  // 60 lookups / hour per IP
+const submitLimiter = rateLimiter(20, 60 * 60 * 1000)  // 20 submissions / hour per IP
+const uploadLimiter = rateLimiter(30, 60 * 60 * 1000)  // 30 uploads / hour per IP
+
+// ─── Routes (no authentication required) ─────────────────────────────────────
+
+router.get('/employee-lookup', lookupLimiter, ctrl.employeeLookup)
+router.get('/master-data',                   ctrl.publicMasterData)
+router.get('/qr',                            ctrl.getQrCode)
+
+router.post('/upload', uploadLimiter, ctrl.publicFileUploadMiddleware, ctrl.publicFileUpload)
+router.post('/idea-submit', submitLimiter,   ctrl.publicIdeaSubmit)
+
+export { router as publicRouter }

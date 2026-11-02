@@ -1,98 +1,110 @@
-import type { Request, Response } from 'express'
+import type { Request, Response, NextFunction, RequestHandler } from 'express'
+import { z } from 'zod'
 import { sendSuccess, sendError, ErrorCodes } from '../utils/response.js'
 import { ServiceError } from '../utils/errors.js'
-import {
-  lookupEmployeeById,
-  getPublicMasterData,
-  submitIdeaAsEmployee,
-} from '../services/publicIdeas.service.js'
+import * as svc from '../services/publicIdeas.service.js'
+import { multerUpload } from './files.controller.js'
 
-// ─── GET /public/employee-lookup?employee_id=EMP001 ───────────────────────────
+// ─── Shared error handler ─────────────────────────────────────────────────────
+
+function handleError(res: Response, err: unknown): void {
+  if (err instanceof ServiceError) {
+    sendError(res, err.httpStatus, err.code, err.message)
+    return
+  }
+  console.error('[public-ideas]', err)
+  sendError(res, 500, ErrorCodes.INTERNAL_ERROR, 'An unexpected error occurred')
+}
+
+// ─── Employee lookup ──────────────────────────────────────────────────────────
 
 export async function employeeLookup(req: Request, res: Response): Promise<void> {
+  const employeeId = typeof req.query['employee_id'] === 'string' ? req.query['employee_id'].trim() : ''
+  if (!employeeId) {
+    sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'employee_id query parameter is required')
+    return
+  }
   try {
-    const employeeId = typeof req.query.employee_id === 'string' ? req.query.employee_id.trim() : ''
-    if (!employeeId) {
-      sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'employee_id query param is required')
-      return
-    }
-    const profile = await lookupEmployeeById(employeeId)
+    const profile = await svc.lookupEmployeeById(employeeId)
     sendSuccess(res, profile)
   } catch (err) {
-    if (err instanceof ServiceError) {
-      sendError(res, err.httpStatus, err.code, err.message)
-    } else {
-      sendError(res, 500, ErrorCodes.INTERNAL_ERROR, 'Internal server error')
-    }
+    handleError(res, err)
   }
 }
 
-// ─── GET /public/master-data ──────────────────────────────────────────────────
+// ─── Public master data ───────────────────────────────────────────────────────
 
 export async function publicMasterData(_req: Request, res: Response): Promise<void> {
   try {
-    const data = await getPublicMasterData()
+    const data = await svc.getPublicMasterData()
     sendSuccess(res, data)
   } catch (err) {
-    if (err instanceof ServiceError) {
-      sendError(res, err.httpStatus, err.code, err.message)
-    } else {
-      sendError(res, 500, ErrorCodes.INTERNAL_ERROR, 'Internal server error')
-    }
+    handleError(res, err)
   }
 }
 
-// ─── POST /public/idea-submit ─────────────────────────────────────────────────
+// ─── Public file upload ───────────────────────────────────────────────────────
+
+export const publicFileUploadMiddleware: RequestHandler = multerUpload
+
+export async function publicFileUpload(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.file) {
+      sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'No file provided')
+      return
+    }
+    const employeeId = (req.body as { employee_id?: string }).employee_id ?? ''
+    const result = await svc.uploadPublicFile(req.file, employeeId)
+    sendSuccess(res, result, 201)
+  } catch (err) {
+    next(err)
+  }
+}
+
+// ─── Idea submission ──────────────────────────────────────────────────────────
+
+const submitSchema = z.object({
+  employee_id:          z.string().min(1, 'employee_id is required'),
+  plant_id:             z.string().uuid('plant_id must be a UUID'),
+  zone_id:              z.string().uuid('zone_id must be a UUID'),
+  department_id:        z.string().uuid('department_id must be a UUID'),
+  function_id:          z.string().uuid().optional(),
+  hall_id:              z.string().uuid().optional(),
+  location_id:          z.string().uuid().optional(),
+  value_stream:         z.string().max(255).optional(),
+  category_id:          z.string().uuid('category_id must be a UUID'),
+  sub_category_id:      z.string().uuid().optional(),
+  problem_statement:    z.string().min(10, 'Problem statement must be at least 10 characters'),
+  description:          z.string().min(10, 'Idea description must be at least 10 characters'),
+  remarks:              z.string().max(1000).optional(),
+  is_anonymous:         z.boolean().optional(),
+  attachment_file_ids:  z.array(z.string().uuid()).max(5).optional(),
+})
 
 export async function publicIdeaSubmit(req: Request, res: Response): Promise<void> {
-  try {
-    const body = req.body as Record<string, unknown>
-
-    const employee_id     = typeof body.employee_id     === 'string' ? body.employee_id.trim()     : ''
-    const plant_id        = typeof body.plant_id        === 'string' ? body.plant_id.trim()        : ''
-    const zone_id         = typeof body.zone_id         === 'string' ? body.zone_id.trim()         : ''
-    const department_id   = typeof body.department_id   === 'string' ? body.department_id.trim()   : ''
-    const category_id     = typeof body.category_id     === 'string' ? body.category_id.trim()     : ''
-    const problem_statement = typeof body.problem_statement === 'string' ? body.problem_statement.trim() : ''
-    const description     = typeof body.description     === 'string' ? body.description.trim()     : ''
-
-    if (!employee_id)     { sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'employee_id is required'); return }
-    if (!plant_id)        { sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'plant_id is required'); return }
-    if (!zone_id)         { sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'zone_id is required'); return }
-    if (!department_id)   { sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'department_id is required'); return }
-    if (!category_id)     { sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'category_id is required'); return }
-    if (!problem_statement) { sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'problem_statement is required'); return }
-    if (!description)     { sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'description is required'); return }
-
-    const str = (v: unknown) => typeof v === 'string' && v.trim() !== '' ? v.trim() : undefined
-    const attachment_file_ids = Array.isArray(body.attachment_file_ids)
-      ? (body.attachment_file_ids as unknown[]).filter((x): x is string => typeof x === 'string')
-      : undefined
-
-    const result = await submitIdeaAsEmployee({
-      employee_id,
-      plant_id,
-      zone_id,
-      department_id,
-      function_id:    str(body.function_id),
-      hall_id:        str(body.hall_id),
-      location_id:    str(body.location_id),
-      value_stream:   str(body.value_stream),
-      category_id,
-      sub_category_id: str(body.sub_category_id),
-      problem_statement,
-      description,
-      remarks:        str(body.remarks),
-      is_anonymous:   body.is_anonymous === true,
-      attachment_file_ids,
-    })
-
-    sendSuccess(res, result)
-  } catch (err) {
-    if (err instanceof ServiceError) {
-      sendError(res, err.httpStatus, err.code, err.message)
-    } else {
-      sendError(res, 500, ErrorCodes.INTERNAL_ERROR, 'Submission failed')
-    }
+  const parsed = submitSchema.safeParse(req.body)
+  if (!parsed.success) {
+    const details = parsed.error.errors.map((e) => ({ field: e.path.join('.'), message: e.message }))
+    sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'Validation failed', details)
+    return
   }
+
+  try {
+    const result = await svc.submitIdeaAsEmployee(parsed.data)
+    sendSuccess(res, result, 201)
+  } catch (err) {
+    handleError(res, err)
+  }
+}
+
+// ─── QR code data ─────────────────────────────────────────────────────────────
+
+export function getQrCode(req: Request, res: Response): void {
+  const plantCode = typeof req.query['plant'] === 'string' ? req.query['plant'] : undefined
+  const proto    = req.headers['x-forwarded-proto'] ?? req.protocol
+  const host     = req.headers['x-forwarded-host'] ?? req.get('host') ?? 'localhost:5173'
+  // Derive frontend base URL — strip /api path if proxied
+  const baseUrl  = `${proto}://${host}`.replace(/\/api.*$/, '')
+  const data = svc.getQrData(baseUrl, plantCode)
+  sendSuccess(res, data)
 }

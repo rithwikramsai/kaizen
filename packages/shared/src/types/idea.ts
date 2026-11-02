@@ -58,6 +58,6 @@ export interface CreateIdeaRequest {
   remarks?: string
   // Attachments
   attachment_file_ids?: string[]
-  // Submission visibility
+  // Submission mode
   is_anonymous?: boolean
 }

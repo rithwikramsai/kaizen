@@ -19,6 +19,7 @@ router.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+router.use('/public', publicRouter)   // unauthenticated — must come before authRouter
 router.use('/auth', authRouter)
 router.use('/', usersRouter)
 router.use('/master', masterRouter)

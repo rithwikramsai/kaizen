@@ -1,458 +1,602 @@
 import { useState, useMemo, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
 import {
   lookupEmployee,
   getPublicMasterData,
   submitPublicIdea,
+  uploadPublicFile,
   type PublicEmployeeProfile,
   type PublicSubmitResult,
 } from '../../api/public.js'
 
-// ─── Success screen ───────────────────────────────────────────────────────────
+// ─── Header ───────────────────────────────────────────────────────────────────
 
-function SuccessScreen({ result, onReset }: { result: PublicSubmitResult; onReset: () => void }) {
+function PageHeader() {
   const navigate = useNavigate()
   return (
-    <div className="flex-1 flex items-center justify-center p-6">
-      <div className="text-center max-w-sm">
-        <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5 border-4 border-emerald-300">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+    <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white font-bold text-sm">K</div>
+        <div>
+          <div className="font-semibold text-gray-900 text-sm leading-tight">Kaizen Digitalization Platform</div>
+          <div className="text-xs text-gray-500">ACG — Submit Your Idea</div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Idea Submitted!</h2>
-        <p className="text-gray-500 text-sm mb-6">Your idea has been received and entered into the review workflow.</p>
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 text-left space-y-3">
-          <div className="flex justify-between">
-            <span className="text-xs text-gray-500 font-medium">Registration ID</span>
-            <span className="font-mono text-sm text-indigo-600 font-bold">{result.registration_id}</span>
+      </div>
+      <button
+        onClick={() => navigate('/login')}
+        className="text-sm font-medium text-white bg-red-600 hover:bg-red-700 px-4 py-1.5 rounded-lg transition-colors"
+      >
+        Staff Login
+      </button>
+    </header>
+  )
+}
+
+// ─── Field helpers ────────────────────────────────────────────────────────────
+
+function Label({ text, required }: { text: string; required?: boolean }) {
+  return (
+    <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
+      {text}{required && <span className="text-red-500 ml-0.5">*</span>}
+    </label>
+  )
+}
+
+function Select({
+  value, onChange, disabled, children, placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  disabled?: boolean
+  children: React.ReactNode
+  placeholder?: string
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-100 disabled:text-gray-400"
+    >
+      <option value="">{placeholder ?? '— Select —'}</option>
+      {children}
+    </select>
+  )
+}
+
+function TextArea({
+  value, onChange, placeholder, rows = 4, required,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  rows?: number
+  required?: boolean
+}) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+      required={required}
+      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+    />
+  )
+}
+
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <div className="bg-red-600 text-white text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-t-lg">
+      {title}
+    </div>
+  )
+}
+
+// ─── Success screen ───────────────────────────────────────────────────────────
+
+function SuccessScreen({ result, onNew }: { result: PublicSubmitResult; onNew: () => void }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(result.registration_id)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <PageHeader />
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-md p-10 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
           </div>
-          <div className="flex justify-between">
-            <span className="text-xs text-gray-500 font-medium">Current Stage</span>
-            <span className="text-sm text-gray-800 font-medium">{result.current_stage}</span>
-          </div>
-          {result.assigned_to && (
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-500 font-medium">Assigned To</span>
-              <span className="text-sm text-gray-800">{result.assigned_to.full_name}</span>
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Idea Submitted!</h2>
+          <p className="text-sm text-gray-500 mb-6">Your idea has been recorded and is now under review.</p>
+
+          <div className="bg-gray-50 rounded-xl p-4 mb-4">
+            <div className="text-xs text-gray-500 uppercase font-semibold tracking-wide mb-1">Registration ID</div>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-lg font-mono font-bold text-gray-900">{result.registration_id}</span>
+              <button
+                onClick={() => void copy()}
+                title="Copy"
+                className="text-gray-400 hover:text-gray-700 transition-colors"
+              >
+                {copied ? (
+                  <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                )}
+              </button>
             </div>
-          )}
-        </div>
-        <p className="text-xs text-gray-400 mb-6">Save your Registration ID to follow up on your idea.</p>
-        <div className="flex gap-3 justify-center">
-          <button onClick={onReset}
-            className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-6 text-left">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-xs text-gray-500 mb-0.5">Current Stage</div>
+              <div className="text-sm font-semibold text-gray-800">{result.current_stage}</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-xs text-gray-500 mb-0.5">Status</div>
+              <div className="text-sm font-semibold text-gray-800">{result.status}</div>
+            </div>
+            {result.assigned_to && (
+              <div className="col-span-2 bg-gray-50 rounded-lg p-3">
+                <div className="text-xs text-gray-500 mb-0.5">Assigned To</div>
+                <div className="text-sm font-semibold text-gray-800">{result.assigned_to.full_name}</div>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={onNew}
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
+          >
             Submit Another Idea
-          </button>
-          <button onClick={() => navigate('/login')}
-            className="px-5 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
-            Staff Login
           </button>
         </div>
       </div>
     </div>
   )
 }
-
-// ─── Field label ──────────────────────────────────────────────────────────────
-
-function Label({ icon, text, required }: { icon: React.ReactNode; text: string; required?: boolean }) {
-  return (
-    <label className="flex items-center gap-1.5 text-sm text-gray-600 font-medium mb-1.5">
-      <span className="text-gray-400">{icon}</span>
-      {text}{required && <span className="text-red-500">*</span>}
-    </label>
-  )
-}
-
-const inputCls  = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white'
-const selectCls = `${inputCls} appearance-none cursor-pointer`
-const readonlyCls = `${inputCls} bg-gray-100 text-gray-500 cursor-not-allowed`
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-const PersonIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-const LayersIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-const MapPinIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-const BuildingIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 21V11h8v10"/></svg>
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function PublicIdeaSubmissionPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [submitted, setSubmitted] = useState<PublicSubmitResult | null>(null)
+  // Employee lookup
+  const [employeeId, setEmployeeId]       = useState(searchParams.get('emp') ?? '')
+  const [employeeIdInput, setEmployeeIdInput] = useState(searchParams.get('emp') ?? '')
+  const [profile, setProfile]             = useState<PublicEmployeeProfile | null>(null)
+  const [lookupError, setLookupError]     = useState<string | null>(null)
+  const [lookupLoading, setLookupLoading] = useState(false)
 
-  // Employee ID lookup
-  const [empId,       setEmpId]       = useState('')
-  const [profile,     setProfile]     = useState<PublicEmployeeProfile | null>(null)
-  const [lookupError, setLookupError] = useState('')
-  const [looking,     setLooking]     = useState(false)
-  const empIdRef = useRef<HTMLInputElement>(null)
-
-  // Idea owner location (from profile, editable)
-  const [ownerZoneId, setOwnerZoneId] = useState('')
-  const [ownerHallId, setOwnerHallId] = useState('')
-
-  // Operational details
-  const [functionId,  setFunctionId]  = useState('')
-  const [zoneId,      setZoneId]      = useState('')
-  const [locationId,  setLocationId]  = useState('')
-  const [valueStream, setValueStream] = useState('')
-  const [hallId,      setHallId]      = useState('')
-  const [categoryId,  setCategoryId]  = useState('')
-  const [subCatId,    setSubCatId]    = useState('')
-  const [deptId,      setDeptId]      = useState('')
-  const [plantId,     setPlantId]     = useState('')
+  // Form state — operational details
+  const [plantId, setPlantId]           = useState('')
+  const [zoneId, setZoneId]             = useState('')
+  const [departmentId, setDepartmentId] = useState('')
+  const [functionId, setFunctionId]     = useState('')
+  const [hallId, setHallId]             = useState('')
+  const [locationId, setLocationId]     = useState('')
+  const [valueStream, setValueStream]   = useState('')
+  const [categoryId, setCategoryId]     = useState('')
+  const [subCategoryId, setSubCategoryId] = useState('')
 
   // Idea content
   const [problemStatement, setProblemStatement] = useState('')
-  const [description,      setDescription]      = useState('')
-  const [remarks,          setRemarks]          = useState('')
-  const [isAnonymous,      setIsAnonymous]      = useState(false)
+  const [description, setDescription]           = useState('')
+  const [remarks, setRemarks]                   = useState('')
+  const [isAnonymous, setIsAnonymous]           = useState(false)
 
+  // File upload
+  const [uploadedFiles, setUploadedFiles]     = useState<{ id: string; name: string }[]>([])
+  const [uploadingFile, setUploadingFile]     = useState(false)
+  const [uploadError, setUploadError]         = useState<string | null>(null)
+
+  // Submission
+  const [submitError, setSubmitError]   = useState<string | null>(null)
+  const [result, setResult]             = useState<PublicSubmitResult | null>(null)
+
+  // Master data
   const { data: master } = useQuery({
     queryKey: ['public-master-data'],
-    queryFn: getPublicMasterData,
-    staleTime: 5 * 60_000,
+    queryFn:  getPublicMasterData,
+    staleTime: 10 * 60 * 1000,
   })
 
-  // Cascading selects
-  const ownerZones  = useMemo(() => master?.zones.filter((z) => z.plant_id === plantId) ?? [],         [master, plantId])
-  const ownerHalls  = useMemo(() => master?.halls.filter((h) => h.function_id === functionId) ?? [],   [master, functionId])
-  const opZones     = useMemo(() => master?.zones.filter((z) => z.plant_id === plantId) ?? [],         [master, plantId])
-  const opFuncs     = useMemo(() => master?.functions.filter((f) => f.department_id === deptId) ?? [], [master, deptId])
-  const opHalls     = useMemo(() => master?.halls.filter((h) => h.function_id === functionId) ?? [],   [master, functionId])
-  const subCats     = useMemo(() => master?.sub_categories.filter((s) => s.category_id === categoryId) ?? [], [master, categoryId])
+  // Cascading filter logic
+  const filteredZones      = useMemo(() => master?.zones.filter((z) => z.plant_id === plantId) ?? [], [master, plantId])
+  const filteredDepts      = useMemo(() => master?.departments.filter((d) => d.zone_id === zoneId) ?? [], [master, zoneId])
+  const filteredFunctions  = useMemo(() => master?.functions.filter((f) => f.department_id === departmentId) ?? [], [master, departmentId])
+  const filteredHalls      = useMemo(() => master?.halls.filter((h) => h.function_id === functionId) ?? [], [master, functionId])
+  const filteredLocations  = useMemo(() => master?.locations.filter((l) => l.hall_id === hallId) ?? [], [master, hallId])
+  const filteredSubCats    = useMemo(() => master?.sub_categories.filter((s) => s.category_id === categoryId) ?? [], [master, categoryId])
 
-  async function handleLookup() {
-    const id = empId.trim()
-    if (!id) { setLookupError('Enter your Employee ID'); return }
-    setLookupError('')
-    setLooking(true)
+  // Employee lookup handler
+  const handleLookup = async (id = employeeIdInput) => {
+    const trimmed = id.trim()
+    if (!trimmed) return
+    setLookupLoading(true)
+    setLookupError(null)
+    setProfile(null)
     try {
-      const p = await lookupEmployee(id)
-      setProfile(p)
-      // Pre-fill from profile
-      if (p.home_plant)       { setPlantId(p.home_plant.id) }
-      if (p.home_zone)        { setOwnerZoneId(p.home_zone.id); setZoneId(p.home_zone.id) }
-      if (p.home_department)  { setDeptId(p.home_department.id) }
-      if (p.home_function)    { setFunctionId(p.home_function.id) }
-      if (p.home_hall)        { setOwnerHallId(p.home_hall.id); setHallId(p.home_hall.id) }
+      const emp = await lookupEmployee(trimmed)
+      setProfile(emp)
+      setEmployeeId(trimmed)
+      // Pre-fill from home assignment
+      if (emp.home_plant)      setPlantId(emp.home_plant.id)
+      if (emp.home_zone)       setZoneId(emp.home_zone.id)
+      if (emp.home_department) setDepartmentId(emp.home_department.id)
+      if (emp.home_function)   setFunctionId(emp.home_function.id)
+      if (emp.home_hall)       setHallId(emp.home_hall.id)
     } catch (err) {
-      setLookupError(err instanceof Error ? err.message : 'Employee ID not found')
-      setProfile(null)
+      setLookupError(err instanceof Error ? err.message : 'Employee not found')
     } finally {
-      setLooking(false)
+      setLookupLoading(false)
+    }
+  }
+
+  // File upload handler
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !employeeId) return
+    if (uploadedFiles.length >= 5) { setUploadError('Maximum 5 files allowed'); return }
+    setUploadingFile(true)
+    setUploadError(null)
+    try {
+      const res = await uploadPublicFile(file, employeeId)
+      setUploadedFiles((prev) => [...prev, { id: res.file_id, name: res.file_name }])
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploadingFile(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
   const submitMutation = useMutation({
-    mutationFn: () => {
-      if (!profile) throw new Error('Profile not loaded')
-      if (!plantId || !zoneId || !deptId || !categoryId) throw new Error('Fill all required fields')
-      if (!problemStatement.trim() || !description.trim()) throw new Error('Fill problem statement and description')
-      return submitPublicIdea({
-        employee_id:      profile.employee_id,
-        plant_id:         plantId,
-        zone_id:          zoneId,
-        department_id:    deptId,
-        function_id:      functionId || undefined,
-        hall_id:          hallId || undefined,
-        location_id:      locationId || undefined,
-        value_stream:     valueStream || undefined,
-        category_id:      categoryId,
-        sub_category_id:  subCatId || undefined,
-        problem_statement: problemStatement.trim(),
-        description:      description.trim(),
-        remarks:          remarks.trim() || undefined,
-        is_anonymous:     isAnonymous,
-      })
-    },
-    onSuccess: (result) => setSubmitted(result),
+    mutationFn: submitPublicIdea,
+    onSuccess: (data) => setResult(data),
+    onError:   (err) => setSubmitError(err instanceof Error ? err.message : 'Submission failed'),
   })
 
-  function handleReset() {
-    setSubmitted(null); setEmpId(''); setProfile(null); setLookupError('')
-    setPlantId(''); setOwnerZoneId(''); setOwnerHallId('')
-    setFunctionId(''); setZoneId(''); setLocationId(''); setValueStream(''); setHallId('')
-    setCategoryId(''); setSubCatId(''); setDeptId('')
-    setProblemStatement(''); setDescription(''); setRemarks(''); setIsAnonymous(false)
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitError(null)
+    if (!profile) { setSubmitError('Please look up your Employee ID first'); return }
+    if (!plantId || !zoneId || !departmentId || !categoryId) {
+      setSubmitError('Please fill in all required fields')
+      return
+    }
+    if (problemStatement.length < 10 || description.length < 10) {
+      setSubmitError('Problem statement and idea description must each be at least 10 characters')
+      return
+    }
+
+    submitMutation.mutate({
+      employee_id:       employeeId,
+      plant_id:          plantId,
+      zone_id:           zoneId,
+      department_id:     departmentId,
+      category_id:       categoryId,
+      problem_statement: problemStatement,
+      description,
+      ...(functionId     ? { function_id:     functionId     } : {}),
+      ...(hallId         ? { hall_id:         hallId         } : {}),
+      ...(locationId     ? { location_id:     locationId     } : {}),
+      ...(valueStream    ? { value_stream:    valueStream    } : {}),
+      ...(subCategoryId  ? { sub_category_id: subCategoryId  } : {}),
+      ...(remarks        ? { remarks                         } : {}),
+      is_anonymous:      isAnonymous,
+      ...(uploadedFiles.length ? { attachment_file_ids: uploadedFiles.map((f) => f.id) } : {}),
+    })
   }
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Header />
-        <SuccessScreen result={submitted} onReset={handleReset} />
-      </div>
-    )
+  const handleReset = () => {
+    setResult(null)
+    setProfile(null)
+    setEmployeeIdInput('')
+    setEmployeeId('')
+    setPlantId(''); setZoneId(''); setDepartmentId(''); setFunctionId('')
+    setHallId(''); setLocationId(''); setValueStream('')
+    setCategoryId(''); setSubCategoryId('')
+    setProblemStatement(''); setDescription(''); setRemarks('')
+    setIsAnonymous(false)
+    setUploadedFiles([])
+    setLookupError(null); setSubmitError(null)
   }
+
+  if (result) return <SuccessScreen result={result} onNew={handleReset} />
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header onLogin={() => navigate('/login')} />
+      <PageHeader />
 
-      <div className="flex-1 p-4 max-w-6xl mx-auto w-full">
+      <div className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">Submit a Kaizen Idea</h1>
+        <p className="text-sm text-gray-500 mb-6">No login required — enter your Employee ID to get started</p>
 
-        {/* Red banner */}
-        <div className="bg-red-600 text-white px-5 py-3 rounded-t-xl flex items-center gap-2 font-semibold text-sm">
-          <span>💡</span>
-          <span>Submitting Improvement Idea for</span>
-          {profile && <span className="font-bold ml-1">— {isAnonymous ? 'Anonymous' : profile.full_name}</span>}
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
 
-        <div className="bg-white border border-t-0 border-gray-200 rounded-b-xl shadow-sm">
+          {/* ── Section 1: Idea Owner Details ── */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <SectionTitle title="Idea Owner Details" />
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
 
-          {/* ── Idea Owner Details ── */}
-          <div className="border-b border-gray-200">
-            <div className="bg-red-50 px-5 py-2.5 border-b border-red-100">
-              <p className="text-sm font-semibold text-red-700">Idea owner details</p>
-            </div>
-            <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-              {/* Employee ID */}
+              {/* Employee ID lookup */}
               <div>
-                <Label icon={<PersonIcon />} text="Employee ID" required />
-                <div className="relative">
+                <Label text="Employee ID" required />
+                <div className="flex gap-2">
                   <input
-                    ref={empIdRef}
                     type="text"
-                    value={empId}
-                    onChange={(e) => { setEmpId(e.target.value); setLookupError('') }}
-                    onBlur={() => { if (empId.trim() && !profile) void handleLookup() }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') void handleLookup() }}
-                    placeholder="e.g. EMP002"
-                    className={`${inputCls} pr-10`}
+                    value={employeeIdInput}
+                    onChange={(e) => setEmployeeIdInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleLookup() } }}
+                    placeholder="e.g. EMP001"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   />
                   <button
                     type="button"
                     onClick={() => void handleLookup()}
-                    disabled={looking}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-500 transition-colors"
-                    title="Look up employee"
+                    disabled={lookupLoading || !employeeIdInput.trim()}
+                    className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
                   >
-                    {looking
-                      ? <span className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin block" />
-                      : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    }
+                    {lookupLoading ? '…' : 'Search'}
                   </button>
                 </div>
-                {lookupError && <p className="mt-1 text-xs text-red-500">{lookupError}</p>}
+                {lookupError && <p className="text-xs text-red-500 mt-1">{lookupError}</p>}
               </div>
 
-              {/* Employee Name — auto-filled */}
+              {/* Employee Name */}
               <div>
-                <Label icon={<PersonIcon />} text="Employee Name" required />
-                <input type="text" value={profile?.full_name ?? ''} readOnly placeholder="Auto-filled from Employee ID" className={readonlyCls} />
+                <Label text="Employee Name" />
+                <input
+                  type="text"
+                  value={profile?.full_name ?? ''}
+                  readOnly
+                  placeholder="Auto-filled after lookup"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700"
+                />
               </div>
 
-              {/* Zone of Idea Owner */}
+              {/* Zone of Owner */}
               <div>
-                <Label icon={<LayersIcon />} text="Zone of Idea Owner" required />
-                <select value={ownerZoneId} onChange={(e) => setOwnerZoneId(e.target.value)} className={selectCls}>
-                  <option value="">Select zone…</option>
-                  {ownerZones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
-                </select>
+                <Label text="Zone of Idea Owner" />
+                <input
+                  type="text"
+                  value={profile?.home_zone?.name ?? ''}
+                  readOnly
+                  placeholder="Auto-filled after lookup"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700"
+                />
               </div>
 
-              {/* Hall of Idea Owner */}
+              {/* Hall of Owner */}
               <div>
-                <Label icon={<BuildingIcon />} text="Hall of Idea Owner" required />
-                <select value={ownerHallId} onChange={(e) => setOwnerHallId(e.target.value)} className={selectCls}>
-                  <option value="">Select hall…</option>
-                  {ownerHalls.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-                </select>
+                <Label text="Hall of Idea Owner" />
+                <input
+                  type="text"
+                  value={profile?.home_hall?.name ?? ''}
+                  readOnly
+                  placeholder="Auto-filled after lookup"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700"
+                />
               </div>
-
             </div>
           </div>
 
-          {/* ── Operational Details ── */}
-          <div>
-            <div className="bg-red-50 px-5 py-2.5 border-b border-red-100">
-              <p className="text-sm font-semibold text-red-700">Operational Details</p>
-            </div>
-            <div className="px-5 py-5 space-y-4">
+          {/* ── Section 2: Operational Details ── */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <SectionTitle title="Operational Details" />
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-              {/* Row 1: Function / Zone / Location / Value Stream */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label icon={<BuildingIcon />} text="Function" required />
-                  <select value={functionId} onChange={(e) => setFunctionId(e.target.value)} className={selectCls}>
-                    <option value=""></option>
-                    {opFuncs.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label icon={<MapPinIcon />} text="Zone" required />
-                  <select value={zoneId} onChange={(e) => setZoneId(e.target.value)} className={selectCls}>
-                    <option value=""></option>
-                    {opZones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label icon={<MapPinIcon />} text="Location" required />
-                  <select value={locationId} onChange={(e) => setLocationId(e.target.value)} className={selectCls}>
-                    <option value=""></option>
-                    {master?.zones.filter((z) => z.id === zoneId).map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label icon={<LayersIcon />} text="Value Stream" required />
-                  <input type="text" value={valueStream} onChange={(e) => setValueStream(e.target.value)}
-                    placeholder="e.g. Assembly Line 3" className={inputCls} />
-                </div>
-              </div>
-
-              {/* Row 2: Hall / Category / Sub-category / Department */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label icon={<BuildingIcon />} text="Hall" required />
-                  <select value={hallId} onChange={(e) => setHallId(e.target.value)} className={selectCls}>
-                    <option value=""></option>
-                    {opHalls.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label icon={<LayersIcon />} text="Category" required />
-                  <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSubCatId('') }} className={selectCls}>
-                    <option value=""></option>
-                    {master?.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label icon={<LayersIcon />} text="Sub-category" />
-                  <select value={subCatId} onChange={(e) => setSubCatId(e.target.value)} disabled={!categoryId} className={selectCls}>
-                    <option value=""></option>
-                    {subCats.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label icon={<BuildingIcon />} text="Department" required />
-                  <select value={deptId} onChange={(e) => setDeptId(e.target.value)} className={selectCls}>
-                    <option value=""></option>
-                    {master?.departments.filter((d) => d.zone_id === zoneId).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Row 3: Problem statement + Idea Description */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label icon={<PersonIcon />} text="Problem statement" required />
-                  <textarea
-                    value={problemStatement}
-                    onChange={(e) => setProblemStatement(e.target.value)}
-                    rows={4}
-                    className={`${inputCls} resize-none`}
-                  />
-                </div>
-                <div>
-                  <Label icon={<PersonIcon />} text="Idea Description" required />
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={4}
-                    className={`${inputCls} resize-none`}
-                  />
-                </div>
-              </div>
-
-              {/* Upload Document */}
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">Upload Document</p>
-                <label className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 cursor-pointer hover:bg-gray-50 transition-colors">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                  Browse File
-                  <input type="file" className="hidden" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx" />
-                </label>
-                <p className="mt-2 text-xs text-gray-400">No items found</p>
+                <Label text="Plant" required />
+                <Select value={plantId} onChange={(v) => { setPlantId(v); setZoneId(''); setDepartmentId(''); setFunctionId(''); setHallId(''); setLocationId('') }}>
+                  {master?.plants.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}
+                </Select>
               </div>
 
-              {/* Remarks */}
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">Remarks</p>
-                <textarea
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  rows={3}
-                  className={`${inputCls} resize-none`}
-                />
+                <Label text="Zone" required />
+                <Select value={zoneId} onChange={(v) => { setZoneId(v); setDepartmentId(''); setFunctionId(''); setHallId(''); setLocationId('') }} disabled={!plantId}>
+                  {filteredZones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
+                </Select>
               </div>
 
-              {/* Anonymous toggle */}
-              <label className="flex items-center gap-3 cursor-pointer">
+              <div>
+                <Label text="Department" required />
+                <Select value={departmentId} onChange={(v) => { setDepartmentId(v); setFunctionId(''); setHallId(''); setLocationId('') }} disabled={!zoneId}>
+                  {filteredDepts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </Select>
+              </div>
+
+              <div>
+                <Label text="Function" />
+                <Select value={functionId} onChange={(v) => { setFunctionId(v); setHallId(''); setLocationId('') }} disabled={!departmentId}>
+                  {filteredFunctions.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </Select>
+              </div>
+
+              <div>
+                <Label text="Hall" />
+                <Select value={hallId} onChange={(v) => { setHallId(v); setLocationId('') }} disabled={!functionId}>
+                  {filteredHalls.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                </Select>
+              </div>
+
+              <div>
+                <Label text="Location" />
+                <Select value={locationId} onChange={setLocationId} disabled={!hallId}>
+                  {filteredLocations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </Select>
+              </div>
+
+              <div>
+                <Label text="Value Stream" />
                 <input
-                  type="checkbox"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
-                  className="w-4 h-4 accent-indigo-600"
+                  type="text"
+                  value={valueStream}
+                  onChange={(e) => setValueStream(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
-                <span className="text-sm text-gray-600">Submit anonymously <span className="text-gray-400 text-xs">(your name will be hidden from reviewers)</span></span>
-              </label>
+              </div>
 
-              {submitMutation.isError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {(submitMutation.error as Error).message}
-                </div>
+              <div>
+                <Label text="Category" required />
+                <Select value={categoryId} onChange={(v) => { setCategoryId(v); setSubCategoryId('') }}>
+                  {master?.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </Select>
+              </div>
+
+              <div>
+                <Label text="Sub-Category" />
+                <Select value={subCategoryId} onChange={setSubCategoryId} disabled={!categoryId}>
+                  {filteredSubCats.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section 3: Idea Details ── */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <SectionTitle title="Idea Details" />
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label text="Problem Statement" required />
+                <TextArea
+                  value={problemStatement}
+                  onChange={setProblemStatement}
+                  placeholder="Describe the current problem or waste..."
+                  rows={5}
+                  required
+                />
+              </div>
+              <div>
+                <Label text="Idea Description" required />
+                <TextArea
+                  value={description}
+                  onChange={setDescription}
+                  placeholder="Describe your proposed improvement..."
+                  rows={5}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section 4: Supporting Document ── */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <SectionTitle title="Supporting Document" />
+            <div className="p-5">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFile || !profile || uploadedFiles.length >= 5}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                >
+                  {uploadingFile ? 'Uploading…' : 'Browse File'}
+                </button>
+                <span className="text-xs text-gray-400">PDF, Word, Excel, Image — max 10 MB (up to 5 files)</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
+                  onChange={(e) => void handleFileChange(e)}
+                  className="hidden"
+                />
+              </div>
+              {uploadError && <p className="text-xs text-red-500 mt-2">{uploadError}</p>}
+              {!profile && <p className="text-xs text-amber-600 mt-2">Look up your Employee ID before uploading files</p>}
+              {uploadedFiles.length > 0 && (
+                <ul className="mt-3 space-y-1">
+                  {uploadedFiles.map((f) => (
+                    <li key={f.id} className="flex items-center gap-2 text-xs text-gray-600">
+                      <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      {f.name}
+                      <button
+                        type="button"
+                        onClick={() => setUploadedFiles((p) => p.filter((x) => x.id !== f.id))}
+                        className="text-gray-400 hover:text-red-500 ml-auto"
+                      >×</button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="mt-0 bg-white border border-t-0 border-gray-200 rounded-b-xl px-5 py-4 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="flex items-center gap-2 px-5 py-2 border border-gray-300 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => submitMutation.mutate()}
-            disabled={submitMutation.isPending || !profile}
-            className="flex items-center gap-2 px-6 py-2 bg-indigo-700 hover:bg-indigo-800 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            {submitMutation.isPending ? 'Submitting…' : 'Submit'}
-          </button>
-        </div>
+          {/* ── Section 5: Additional Details ── */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <SectionTitle title="Additional Details" />
+            <div className="p-5 space-y-4">
+              <div>
+                <Label text="Remarks" />
+                <TextArea
+                  value={remarks}
+                  onChange={setRemarks}
+                  placeholder="Any additional comments (optional)"
+                  rows={3}
+                />
+              </div>
+
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <div
+                  onClick={() => setIsAnonymous((v) => !v)}
+                  className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${isAnonymous ? 'bg-red-600' : 'bg-gray-300'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${isAnonymous ? 'translate-x-4' : 'translate-x-0'}`} />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-800">Submit Anonymously</div>
+                  <div className="text-xs text-gray-500">Your name will be hidden from reviewers</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* ── Error + Actions ── */}
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+              {submitError}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pb-8">
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitMutation.isPending || !profile}
+              className="px-8 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
+            >
+              {submitMutation.isPending ? 'Submitting…' : 'Submit Idea'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-  )
-}
-
-// ─── Header ───────────────────────────────────────────────────────────────────
-
-function Header({ onLogin }: { onLogin?: () => void }) {
-  const navigate = useNavigate()
-  return (
-    <header className="bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-sm font-bold text-gray-800 leading-tight">Kaizen Digitalization Platform</p>
-          <p className="text-[10px] text-gray-400">Continuous Improvement</p>
-        </div>
-      </div>
-      <button
-        onClick={onLogin ?? (() => navigate('/login'))}
-        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-        Staff Login
-      </button>
-    </header>
   )
 }
