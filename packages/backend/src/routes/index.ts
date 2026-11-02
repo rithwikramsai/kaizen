@@ -6,6 +6,10 @@ import { workflowRouter } from './workflow.js'
 import { ideasRouter } from './ideas.js'
 import { filesRouter } from './files.js'
 import { kaizensRouter } from './kaizens.js'
+import { rewardsRouter } from './rewards.js'
+import { notificationsRouter } from './notifications.js'
+import { reportsRouter } from './reports.js'
+import { analyticsRouter } from './analytics.js'
 
 const router: ReturnType<typeof Router> = Router()
 
@@ -20,5 +24,9 @@ router.use('/workflow', workflowRouter)
 router.use('/ideas', ideasRouter)
 router.use('/files', filesRouter)
 router.use('/kaizens', kaizensRouter)
+router.use('/rewards', rewardsRouter)
+router.use('/notifications', notificationsRouter)
+router.use('/reports', reportsRouter)
+router.use('/reports', analyticsRouter)
 
 export { router }

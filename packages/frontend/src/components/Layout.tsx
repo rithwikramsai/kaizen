@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth.js'
+import { getUnreadCount } from '../api/notifications.js'
 
 // ─── Inline SVG icons ─────────────────────────────────────────────────────────
 
@@ -49,6 +51,82 @@ function WrenchIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+    </svg>
+  )
+}
+
+function TrophyIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="8 21 12 17 16 21" />
+      <line x1="12" y1="17" x2="12" y2="11" />
+      <path d="M7 4H17l-1 6a4 4 0 01-8 0z" />
+      <path d="M5 4h2M17 4h2" />
+    </svg>
+  )
+}
+
+function StarIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  )
+}
+
+function BarChartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  )
+}
+
+function PieChartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.21 15.89A10 10 0 118 2.83" />
+      <path d="M22 12A10 10 0 0012 2v10z" />
+    </svg>
+  )
+}
+
+function TrendingUpIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+      <polyline points="17 6 23 6 23 12" />
+    </svg>
+  )
+}
+
+function LayersIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
+    </svg>
+  )
+}
+
+function AlertCircleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
   )
 }
@@ -124,6 +202,35 @@ function Avatar({ name }: { name: string }) {
   )
 }
 
+// ─── Bell with live unread count ──────────────────────────────────────────────
+
+function BellButton() {
+  const navigate = useNavigate()
+  const { data } = useQuery({
+    queryKey: ['unread-count'],
+    queryFn: getUnreadCount,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+
+  const count = data?.count ?? 0
+
+  return (
+    <button
+      onClick={() => navigate('/notifications')}
+      className="relative text-slate-400 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-all duration-200"
+      aria-label={count > 0 ? `${count} unread notifications` : 'Notifications'}
+    >
+      <BellIcon />
+      {count > 0 && (
+        <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5 bg-red-500 rounded-full ring-2 ring-[#0f0f23] flex items-center justify-center text-[9px] font-bold text-white leading-none">
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </button>
+  )
+}
+
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export function Layout() {
@@ -155,11 +262,7 @@ export function Layout() {
         {/* Right: Notification + user + logout */}
         <div className="flex items-center gap-3">
 
-          {/* Bell */}
-          <button className="relative text-slate-400 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-all duration-200">
-            <BellIcon />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-[#0f0f23]" />
-          </button>
+          <BellButton />
 
           {/* User info */}
           <div className="flex items-center gap-2.5 border border-white/8 rounded-xl px-3 py-1.5 bg-white/3">
@@ -201,6 +304,31 @@ export function Layout() {
               <NavItem to="/review" icon={<InboxIcon />} label="Review Queue" />
             )}
             <NavItem to="/kaizens" icon={<WrenchIcon />} label="Implementation" />
+            {(hasPermission('CAN_ASSIGN_REWARD') || hasPermission('CAN_NOMINATE_HIGH_IMPACT') || hasPermission('CAN_VIEW_REPORTS')) && (
+              <NavItem to="/rewards" icon={<TrophyIcon />} label="Rewards" />
+            )}
+            {hasPermission('CAN_RATE_HIGH_IMPACT') && (
+              <NavItem to="/rewards/sc-ratings" icon={<StarIcon />} label="SC Ratings" />
+            )}
+            {(hasPermission('CAN_ASSIGN_REWARD') || hasPermission('CAN_VIEW_REPORTS')) && (
+              <NavItem to="/rewards/history" icon={<ClockIcon />} label="Reward History" />
+            )}
+            {(hasPermission('CAN_ASSIGN_REWARD') || hasPermission('CAN_VIEW_REPORTS')) && (
+              <NavItem to="/rewards/leaderboard" icon={<BarChartIcon />} label="Leaderboard" />
+            )}
+            {hasPermission('CAN_VIEW_REPORTS') && (
+              <NavItem to="/reports/dashboard"  icon={<PieChartIcon />}     label="Dashboard" />
+            )}
+            {hasPermission('CAN_VIEW_REPORTS') && (
+              <NavItem to="/reports/trends"     icon={<TrendingUpIcon />}   label="Trends" />
+            )}
+            {hasPermission('CAN_VIEW_REPORTS') && (
+              <NavItem to="/reports/analytics"  icon={<LayersIcon />}       label="Analytics" />
+            )}
+            {hasPermission('CAN_VIEW_REPORTS') && (
+              <NavItem to="/reports/sla"        icon={<AlertCircleIcon />}  label="SLA Report" />
+            )}
+            <NavItem to="/notifications" icon={<BellIcon />} label="Notifications" />
           </nav>
 
           {/* Bottom metadata */}
@@ -208,9 +336,9 @@ export function Layout() {
             <div className="text-[10px] text-slate-600 font-medium uppercase tracking-widest mb-1">Current Phase</div>
             <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-              <span className="text-[11px] text-indigo-400 font-medium">Phase 6 — Implementation</span>
+              <span className="text-[11px] text-indigo-400 font-medium">Phase 8.4 — Analytics</span>
             </div>
-            <div className="text-[10px] text-slate-700 mt-2">v0.6.0</div>
+            <div className="text-[10px] text-slate-700 mt-2">v0.8.4</div>
           </div>
 
         </aside>
