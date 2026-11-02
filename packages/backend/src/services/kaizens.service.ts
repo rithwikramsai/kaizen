@@ -3,6 +3,7 @@ import { ServiceError } from '../utils/errors.js'
 import { ErrorCodes } from '../utils/response.js'
 import { generateKaizenId } from '../utils/id-generator.js'
 import { initiateWorkflowWithClient } from './workflow.service.js'
+import { sendEmailForEvent } from './email/email.service.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -582,6 +583,14 @@ export async function submitOnePager(
     )
 
     await client.query('COMMIT')
+
+    if (wf.firstAssignee) {
+      void sendEmailForEvent('ONE_PAGER_SUBMITTED', wf.firstAssignee.id, {
+        kaizenRef: kaizen.kaizen_id ?? undefined,
+        kaizenTitle: kaizen.title ?? undefined,
+      })
+    }
+
     return {
       kaizen_id: kaizen.kaizen_id ?? kaizenId,
       workflow_instance_id: wf.instanceId,

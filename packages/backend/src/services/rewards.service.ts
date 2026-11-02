@@ -1,6 +1,7 @@
 import { pool } from '../config/database.js'
 import { ServiceError } from '../utils/errors.js'
 import { ErrorCodes } from '../utils/response.js'
+import { sendEmailForEvent } from './email/email.service.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -174,8 +175,8 @@ export async function assignRegularReward(params: {
     await client.query('BEGIN')
 
     // Plant isolation check
-    const kaizenRes = await client.query<{ plant_id: string; status: string }>(
-      `SELECT i.plant_id, k.status
+    const kaizenRes = await client.query<{ plant_id: string; status: string; implementation_owner: string | null; title: string | null; kaizen_id: string | null }>(
+      `SELECT i.plant_id, k.status, k.implementation_owner, k.title, k.kaizen_id
        FROM kaizens k JOIN ideas i ON i.id = k.idea_id
        WHERE k.id = $1`,
       [kaizenId],
@@ -214,6 +215,17 @@ export async function assignRegularReward(params: {
     )
 
     await client.query('COMMIT')
+
+    const { implementation_owner, title, kaizen_id: kaizenRef } = kaizenRes.rows[0]!
+    if (implementation_owner) {
+      void sendEmailForEvent('REWARD_ASSIGNED', implementation_owner, {
+        kaizenRef: kaizenRef ?? undefined,
+        kaizenTitle: title ?? undefined,
+        rewardAmount: rewardAmount,
+        rewardDetails: rewardDetails,
+      })
+    }
+
     return { rewardId }
   } catch (err) {
     await client.query('ROLLBACK')
@@ -237,8 +249,8 @@ export async function nominateHighImpact(params: {
     await client.query('BEGIN')
 
     // Plant isolation + status check
-    const kaizenRes = await client.query<{ plant_id: string; status: string }>(
-      `SELECT i.plant_id, k.status
+    const kaizenRes = await client.query<{ plant_id: string; status: string; title: string | null; kaizen_id: string | null }>(
+      `SELECT i.plant_id, k.status, k.title, k.kaizen_id
        FROM kaizens k JOIN ideas i ON i.id = k.idea_id
        WHERE k.id = $1`,
       [kaizenId],
@@ -298,6 +310,15 @@ export async function nominateHighImpact(params: {
     )
 
     await client.query('COMMIT')
+
+    const { title, kaizen_id: kaizenRef } = kaizenRes.rows[0]!
+    for (const sc of scMembers.rows) {
+      void sendEmailForEvent('HIGH_IMPACT_NOMINATED', sc.user_id, {
+        kaizenRef: kaizenRef ?? undefined,
+        kaizenTitle: title ?? undefined,
+      })
+    }
+
     return { nominationId }
   } catch (err) {
     await client.query('ROLLBACK')
