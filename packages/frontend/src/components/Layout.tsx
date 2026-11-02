@@ -140,6 +140,75 @@ function AlertCircleIcon() {
   )
 }
 
+function ShieldIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  )
+}
+
+function UsersIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 00-3-3.87" />
+      <path d="M16 3.13a4 4 0 010 7.75" />
+    </svg>
+  )
+}
+
+function DatabaseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    </svg>
+  )
+}
+
+function GitBranchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="6" y1="3" x2="6" y2="15" />
+      <circle cx="18" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <path d="M18 9a9 9 0 01-9 9" />
+    </svg>
+  )
+}
+
+function TimerIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="13" r="8" />
+      <path d="M12 9v4l2 2" />
+      <path d="M5 3L2 6M22 6l-3-3M12 2v1" />
+    </svg>
+  )
+}
+
+function FileTextIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+    </svg>
+  )
+}
+
+function ActivityIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  )
+}
+
 function PowerIcon() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -329,6 +398,36 @@ export function Layout() {
               <NavItem to="/reports/sla"        icon={<AlertCircleIcon />} label="SLA Report" />
             )}
             <NavItem to="/notifications" icon={<BellIcon />} label="Notifications" />
+
+            {(hasPermission('CAN_MANAGE_USERS') || hasPermission('CAN_MANAGE_MASTER_DATA') || hasPermission('CAN_VIEW_REPORTS')) && (
+              <div className="mx-4 my-2 border-t border-white/5" />
+            )}
+            {(hasPermission('CAN_MANAGE_USERS') || hasPermission('CAN_MANAGE_MASTER_DATA') || hasPermission('CAN_VIEW_REPORTS')) && (
+              <div className="px-4 pb-1">
+                <span className="text-[9px] font-semibold text-slate-600 uppercase tracking-widest">Admin</span>
+              </div>
+            )}
+            {hasPermission('CAN_MANAGE_USERS') && (
+              <NavItem to="/admin"         icon={<ShieldIcon />}    label="Overview" end />
+            )}
+            {hasPermission('CAN_MANAGE_USERS') && (
+              <NavItem to="/admin/users"   icon={<UsersIcon />}     label="Users" />
+            )}
+            {hasPermission('CAN_MANAGE_MASTER_DATA') && (
+              <NavItem to="/admin/master-data" icon={<DatabaseIcon />} label="Master Data" />
+            )}
+            {hasPermission('CAN_MANAGE_MASTER_DATA') && (
+              <NavItem to="/admin/workflows"   icon={<GitBranchIcon />} label="Workflows" />
+            )}
+            {hasPermission('CAN_MANAGE_MASTER_DATA') && (
+              <NavItem to="/admin/sla"         icon={<TimerIcon />}     label="SLA Config" />
+            )}
+            {hasPermission('CAN_VIEW_REPORTS') && (
+              <NavItem to="/admin/audit"       icon={<FileTextIcon />}  label="Audit Log" />
+            )}
+            {hasPermission('CAN_MANAGE_USERS') && (
+              <NavItem to="/admin/health"      icon={<ActivityIcon />}  label="System Health" />
+            )}
           </nav>
 
           {/* Bottom metadata */}
@@ -336,9 +435,9 @@ export function Layout() {
             <div className="text-[10px] text-slate-600 font-medium uppercase tracking-widest mb-1">Current Phase</div>
             <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-              <span className="text-[11px] text-indigo-400 font-medium">Phase 8.4 — Analytics</span>
+              <span className="text-[11px] text-indigo-400 font-medium">Phase 9 — Admin</span>
             </div>
-            <div className="text-[10px] text-slate-700 mt-2">v0.8.4</div>
+            <div className="text-[10px] text-slate-700 mt-2">v0.9.0</div>
           </div>
 
         </aside>
