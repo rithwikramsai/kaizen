@@ -20,5 +20,5 @@ export async function authFetch<T>(path: string, options: RequestInit = {}): Pro
     throw new Error(msg)
   }
 
-  return body as T
+  return body.data as T
 }

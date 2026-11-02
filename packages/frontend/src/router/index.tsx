@@ -9,6 +9,11 @@ import { IdeaDetailPage } from '../pages/ideas/IdeaDetailPage.js'
 import { ApprovedQueuePage } from '../pages/kaizens/ApprovedQueuePage.js'
 import { KaizenOnePagerPage } from '../pages/kaizens/KaizenOnePagerPage.js'
 import { ReviewQueuePage } from '../pages/review/ReviewQueuePage.js'
+import { RewardsQueuePage } from '../pages/rewards/RewardsQueuePage.js'
+import { NominationDetailPage } from '../pages/rewards/NominationDetailPage.js'
+import { SCRatingPage } from '../pages/rewards/SCRatingPage.js'
+import { RewardHistoryPage } from '../pages/rewards/RewardHistoryPage.js'
+import { LeaderboardPage } from '../pages/rewards/LeaderboardPage.js'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -27,6 +32,11 @@ export const router = createBrowserRouter([
           { path: 'review', element: <ReviewQueuePage /> },
           { path: 'kaizens', element: <ApprovedQueuePage /> },
           { path: 'kaizens/:kaizenId', element: <KaizenOnePagerPage /> },
+          { path: 'rewards', element: <RewardsQueuePage /> },
+          { path: 'rewards/nominations/:nominationId', element: <NominationDetailPage /> },
+          { path: 'rewards/sc-ratings', element: <SCRatingPage /> },
+          { path: 'rewards/history', element: <RewardHistoryPage /> },
+          { path: 'rewards/leaderboard', element: <LeaderboardPage /> },
         ],
       },
     ],
