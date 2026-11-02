@@ -26,9 +26,11 @@ import { WorkflowTemplatesPage } from '../pages/admin/WorkflowTemplatesPage.js'
 import { SLAConfigurationPage } from '../pages/admin/SLAConfigurationPage.js'
 import { AuditLogViewerPage } from '../pages/admin/AuditLogViewerPage.js'
 import { SystemHealthPage } from '../pages/admin/SystemHealthPage.js'
+import { PublicIdeaSubmissionPage } from '../pages/public/PublicIdeaSubmissionPage.js'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/submit-anonymous', element: <PublicIdeaSubmissionPage /> },
   {
     element: <ProtectedRoute />,
     children: [

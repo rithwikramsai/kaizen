@@ -11,6 +11,7 @@ import { notificationsRouter } from './notifications.js'
 import { reportsRouter } from './reports.js'
 import { analyticsRouter } from './analytics.js'
 import { adminRouter } from './admin.js'
+import { publicRouter } from './public.js'
 
 const router: ReturnType<typeof Router> = Router()
 
@@ -30,5 +31,6 @@ router.use('/notifications', notificationsRouter)
 router.use('/reports', reportsRouter)
 router.use('/reports', analyticsRouter)
 router.use('/admin', adminRouter)
+router.use('/public', publicRouter)
 
 export { router }

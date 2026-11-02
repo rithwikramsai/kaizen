@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { authFetch } from '../../api/client.js'
+import { authFetch, authFetchList } from '../../api/client.js'
 import { PageTransition } from '../../components/PageTransition.js'
 
 interface User {
@@ -20,11 +20,11 @@ interface UsersResult {
 function fetchUsers(page: number, search: string): Promise<UsersResult> {
   const qs = new URLSearchParams({ page: String(page), page_size: '20' })
   if (search) qs.set('search', search)
-  return authFetch<UsersResult>(`/users?${qs.toString()}`)
+  return authFetchList<User>(`/users?${qs.toString()}`)
 }
 
 function deactivateUser(id: string): Promise<void> {
-  return authFetch<void>(`/users/${id}/deactivate`, { method: 'PATCH' })
+  return authFetch<void>(`/users/${id}/deactivate`, { method: 'PUT' })
 }
 
 function fmtDate(iso: string) {

@@ -50,6 +50,7 @@ interface CreateIdeaParams {
   sub_category_id?: string
   tag_ids?: string[]
   attachment_file_ids?: string[]
+  is_anonymous?: boolean
   submittedBy: string
 }
 
@@ -116,8 +117,8 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
       `INSERT INTO ideas
          (registration_id, submitted_by, plant_id, zone_id, department_id, function_id, hall_id, location_id,
           value_stream, category_id, sub_category_id, title, description, problem_statement, remarks,
-          status, submitted_at, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'SUBMITTED',NOW(),NOW(),NOW())
+          is_anonymous, status, submitted_at, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'SUBMITTED',NOW(),NOW(),NOW())
        RETURNING *`,
       [
         registrationId,
@@ -135,6 +136,7 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
         params.description,
         params.problem_statement,
         orNull(params.remarks),
+        params.is_anonymous ?? false,
       ],
     )
     const idea = ideaRes.rows[0]!
