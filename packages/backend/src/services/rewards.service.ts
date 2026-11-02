@@ -209,7 +209,7 @@ export async function assignRegularReward(params: {
     const rewardId = rewardRes.rows[0]!.id
 
     await client.query(
-      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata)
+      `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
        VALUES ($1, 'REGULAR_REWARD_ASSIGNED', 'kaizen', $2, $3)`,
       [actorId, kaizenId, JSON.stringify({ reward_id: rewardId, reward_amount: rewardAmount })],
     )
@@ -304,7 +304,7 @@ export async function nominateHighImpact(params: {
     }
 
     await client.query(
-      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata)
+      `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
        VALUES ($1, 'HIGH_IMPACT_NOMINATED', 'kaizen', $2, $3)`,
       [actorId, kaizenId, JSON.stringify({ nomination_id: nominationId, sc_members_assigned: scMembers.rows.length })],
     )
@@ -464,7 +464,7 @@ export async function submitScRating(params: {
     }
 
     await client.query(
-      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata)
+      `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
        VALUES ($1, 'SC_RATING_SUBMITTED', 'high_impact_nomination', $2, $3)`,
       [actorId, nominationId, JSON.stringify({ rating_score: ratingScore })],
     )
@@ -529,7 +529,7 @@ export async function nominateSpecialRR(params: {
     )
 
     await client.query(
-      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata)
+      `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
        VALUES ($1, 'SPECIAL_REWARD_NOMINATED', 'high_impact_nomination', $2, $3)`,
       [actorId, nominationId, JSON.stringify({ reward_id: rewardId, kaizen_id: kaizenId })],
     )
@@ -600,7 +600,7 @@ export async function nominateInterPlant(params: {
     )
 
     await client.query(
-      `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata)
+      `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
        VALUES ($1, 'INTER_PLANT_NOMINATED', 'high_impact_nomination', $2, $3)`,
       [actorId, nominationId, JSON.stringify({ inter_plant_id: interPlantId, competition_round: competitionRound, competition_year: competitionYear })],
     )

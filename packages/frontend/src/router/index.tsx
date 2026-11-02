@@ -19,6 +19,13 @@ import { DashboardPage } from '../pages/reports/DashboardPage.js'
 import { TrendsPage } from '../pages/reports/TrendsPage.js'
 import { AnalyticsPage } from '../pages/reports/AnalyticsPage.js'
 import { SLAReportPage } from '../pages/reports/SLAReportPage.js'
+import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage.js'
+import { UserManagementPage } from '../pages/admin/UserManagementPage.js'
+import { MasterDataPage } from '../pages/admin/MasterDataPage.js'
+import { WorkflowTemplatesPage } from '../pages/admin/WorkflowTemplatesPage.js'
+import { SLAConfigurationPage } from '../pages/admin/SLAConfigurationPage.js'
+import { AuditLogViewerPage } from '../pages/admin/AuditLogViewerPage.js'
+import { SystemHealthPage } from '../pages/admin/SystemHealthPage.js'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -47,6 +54,13 @@ export const router = createBrowserRouter([
           { path: 'reports/trends',     element: <TrendsPage /> },
           { path: 'reports/analytics',  element: <AnalyticsPage /> },
           { path: 'reports/sla',        element: <SLAReportPage /> },
+          { path: 'admin',              element: <AdminDashboardPage /> },
+          { path: 'admin/users',        element: <UserManagementPage /> },
+          { path: 'admin/master-data',  element: <MasterDataPage /> },
+          { path: 'admin/workflows',    element: <WorkflowTemplatesPage /> },
+          { path: 'admin/sla',          element: <SLAConfigurationPage /> },
+          { path: 'admin/audit',        element: <AuditLogViewerPage /> },
+          { path: 'admin/health',       element: <SystemHealthPage /> },
         ],
       },
     ],

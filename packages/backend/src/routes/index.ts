@@ -10,6 +10,7 @@ import { rewardsRouter } from './rewards.js'
 import { notificationsRouter } from './notifications.js'
 import { reportsRouter } from './reports.js'
 import { analyticsRouter } from './analytics.js'
+import { adminRouter } from './admin.js'
 
 const router: ReturnType<typeof Router> = Router()
 
@@ -28,5 +29,6 @@ router.use('/rewards', rewardsRouter)
 router.use('/notifications', notificationsRouter)
 router.use('/reports', reportsRouter)
 router.use('/reports', analyticsRouter)
+router.use('/admin', adminRouter)
 
 export { router }
