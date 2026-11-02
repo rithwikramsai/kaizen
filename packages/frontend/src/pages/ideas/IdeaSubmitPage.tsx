@@ -44,6 +44,8 @@ const schema = z.object({
   remarks:            z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
   // Attachments
   attachment_file_ids: z.array(z.string()).default([]),
+  // Submission visibility
+  is_anonymous: z.boolean().default(false),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -260,7 +262,32 @@ export function IdeaSubmitPage() {
                 </div>
               )}
 
-              <div className="pt-2 border-t border-white/5">
+              <div className="pt-4 border-t border-white/5 space-y-3">
+                <Controller
+                  control={control}
+                  name="is_anonymous"
+                  render={({ field }) => (
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <div className="relative flex-shrink-0 mt-0.5">
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={field.value}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                        />
+                        <div className={`w-9 h-5 rounded-full transition-colors duration-200 ${field.value ? 'bg-indigo-500' : 'bg-white/10'}`}>
+                          <div className={`w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 transition-transform duration-200 ${field.value ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">Submit anonymously</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Your name will be hidden from reviewers. Your identity is still stored securely for audit purposes.
+                        </p>
+                      </div>
+                    </label>
+                  )}
+                />
                 <p className="text-xs text-slate-600 italic">
                   Not your details? Contact your system administrator to update your profile.
                 </p>
@@ -454,6 +481,7 @@ export function IdeaSubmitPage() {
                   {watchedVals.value_stream && <ReviewRow label="Value Stream" value={watchedVals.value_stream} />}
                   <ReviewRow label="Problem"       value={watchedVals.problem_statement?.slice(0, 80) + (watchedVals.problem_statement?.length > 80 ? '…' : '')} />
                   <ReviewRow label="Attachments"   value={`${(watchedVals.attachment_file_ids ?? []).length} file(s)`} />
+                  <ReviewRow label="Submission"    value={watchedVals.is_anonymous ? 'Anonymous' : 'Named (your name shown to reviewers)'} />
                 </div>
               </div>
             </div>

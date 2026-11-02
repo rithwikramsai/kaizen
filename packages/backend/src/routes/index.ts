@@ -32,5 +32,6 @@ router.use('/notifications', notificationsRouter)
 router.use('/reports', reportsRouter)
 router.use('/reports', analyticsRouter)
 router.use('/admin', adminRouter)
+router.use('/public', publicRouter)
 
 export { router }

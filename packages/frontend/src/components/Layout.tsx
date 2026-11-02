@@ -435,9 +435,9 @@ export function Layout() {
             <div className="text-[10px] text-slate-600 font-medium uppercase tracking-widest mb-1">Current Phase</div>
             <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-              <span className="text-[11px] text-indigo-400 font-medium">Phase 9 — Admin</span>
+              <span className="text-[11px] text-indigo-400 font-medium">Phase 10 — Anonymous Submission</span>
             </div>
-            <div className="text-[10px] text-slate-700 mt-2">v0.9.0</div>
+            <div className="text-[10px] text-slate-700 mt-2">v0.10.0</div>
           </div>
 
         </aside>
