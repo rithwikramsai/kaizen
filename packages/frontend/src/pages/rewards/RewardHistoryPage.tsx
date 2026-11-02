@@ -18,7 +18,7 @@ function TypeBadge({ item }: { item: RewardHistoryItem }) {
   if (item.reward_type === 'SPECIAL') {
     return (
       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/20">
-        Special R&R
+        Special R&amp;R
       </span>
     )
   }

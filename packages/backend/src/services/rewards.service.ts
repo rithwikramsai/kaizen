@@ -60,10 +60,10 @@ export interface RewardHistoryItem {
   reward_type?: string
   reward_amount?: number | null
   reward_details?: string | null
-  nomination_status?: string
-  competition_round?: string
-  result?: string | null
-  competition_year?: number
+  nomination_status?: string | undefined
+  competition_round?: string | undefined
+  result?: string | null | undefined
+  competition_year?: number | undefined
   assigned_at: string
 }
 
@@ -731,10 +731,10 @@ export async function getLeaderboard(actorPlantId: string): Promise<LeaderboardE
        k.implementation_owner,
        u.full_name AS owner_name,
        z.name AS zone_name,
-       COUNT(DISTINCT k.id) AS total_kaizens,
-       COUNT(DISTINCT r.id) AS total_rewards,
-       COUNT(DISTINCT hin.id) AS high_impact_nominations,
-       COUNT(DISTINCT ipn.id) AS inter_plant_nominations
+       COUNT(DISTINCT k.id)::int AS total_kaizens,
+       COUNT(DISTINCT r.id)::int AS total_rewards,
+       COUNT(DISTINCT hin.id)::int AS high_impact_nominations,
+       COUNT(DISTINCT ipn.id)::int AS inter_plant_nominations
      FROM kaizens k
      JOIN ideas i ON i.id = k.idea_id
      JOIN zones z ON z.id = i.zone_id
@@ -746,7 +746,8 @@ export async function getLeaderboard(actorPlantId: string): Promise<LeaderboardE
        AND k.status = 'APPROVED'
        AND k.implementation_owner IS NOT NULL
      GROUP BY k.implementation_owner, u.full_name, z.name
-     ORDER BY total_rewards DESC, high_impact_nominations DESC, total_kaizens DESC`,
+     ORDER BY total_rewards DESC, high_impact_nominations DESC, total_kaizens DESC
+     LIMIT 50`,
     [actorPlantId],
   )
 
@@ -754,16 +755,28 @@ export async function getLeaderboard(actorPlantId: string): Promise<LeaderboardE
     implementation_owner: r.implementation_owner as string,
     owner_name: r.owner_name as string | null,
     zone_name: r.zone_name as string,
-    total_kaizens: parseInt(r.total_kaizens as string),
-    total_rewards: parseInt(r.total_rewards as string),
-    high_impact_nominations: parseInt(r.high_impact_nominations as string),
-    inter_plant_nominations: parseInt(r.inter_plant_nominations as string),
+    total_kaizens: r.total_kaizens as number,
+    total_rewards: r.total_rewards as number,
+    high_impact_nominations: r.high_impact_nominations as number,
+    inter_plant_nominations: r.inter_plant_nominations as number,
   }))
 }
 
 // ─── Get SC Pending Nominations ───────────────────────────────────────────────
 
-export async function getScPendingNominations(actorId: string, actorPlantId: string): Promise<unknown[]> {
+export async function getScPendingNominations(actorId: string, actorPlantId: string): Promise<{
+  nomination_id: string
+  nomination_status: string
+  nominated_at: string
+  kaizen_id: string
+  kaizen_ref: string | null
+  registration_id: string
+  title: string
+  owner_name: string | null
+  zone_name: string
+  rating_id: string
+  has_rated: boolean
+}[]> {
   const rows = await pool.query(
     `SELECT
        hin.id AS nomination_id,
