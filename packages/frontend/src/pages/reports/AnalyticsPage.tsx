@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import {
   getZoneAnalytics,
   getDepartmentAnalytics,
   getCategoryAnalytics,
+  getTrends,
   downloadExport,
   type ExportDataset,
 } from '../../api/analytics.js'
@@ -21,13 +23,14 @@ const TOOLTIP_STYLE = { backgroundColor: '#1a1a2e', border: '1px solid rgba(255,
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'zones' | 'departments' | 'categories' | 'exports'
+type Tab = 'trends' | 'zones' | 'departments' | 'categories' | 'exports'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'zones',       label: 'Zones' },
-  { id: 'departments', label: 'Departments' },
-  { id: 'categories',  label: 'Categories' },
-  { id: 'exports',     label: 'Exports' },
+  { id: 'trends',       label: 'Monthly Trends' },
+  { id: 'zones',        label: 'Zones' },
+  { id: 'departments',  label: 'Departments' },
+  { id: 'categories',   label: 'Categories' },
+  { id: 'exports',      label: 'Exports' },
 ]
 
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
@@ -207,8 +210,89 @@ function ExportsPanel() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+function TrendsTab() {
+  const [year, setYear] = useState(new Date().getFullYear())
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['trends', year],
+    queryFn: () => getTrends(year),
+    staleTime: 120_000,
+  })
+  const hasIdeas   = data?.ideas.some(r => r.submitted > 0 || r.approved > 0 || r.rejected > 0) ?? false
+  const hasKaizens = data?.kaizens.some(r => r.created > 0 || r.approved > 0) ?? false
+  const hasRewards = data?.rewards.some(r => r.regular > 0 || r.high_impact > 0) ?? false
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-400">Ideas, kaizens and rewards by month</p>
+        <select value={year} onChange={(e) => setYear(Number(e.target.value))}
+          className="bg-white/5 border border-white/10 text-white text-sm rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          {years.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+      {isLoading && <SkeletonDetail />}
+      {isError && <div className="text-red-400 text-sm">Failed to load trends data.</div>}
+      {data && (
+        <>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+            <h3 className="text-sm font-semibold text-slate-300 mb-4">Ideas</h3>
+            {!hasIdeas ? <div className="text-slate-600 text-sm py-8 text-center">No idea data for this period</div> : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={data.ideas} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+                  <CartesianGrid stroke={GRID_COLOR} vertical={false} />
+                  <XAxis dataKey="month" tick={TICK_STYLE} tickLine={false} axisLine={false} />
+                  <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#94a3b8' }} itemStyle={{ color: '#e2e8f0' }} />
+                  <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+                  <Line type="monotone" dataKey="submitted" stroke="#38bdf8" strokeWidth={2} dot={false} name="Submitted" />
+                  <Line type="monotone" dataKey="approved" stroke="#34d399" strokeWidth={2} dot={false} name="Approved" />
+                  <Line type="monotone" dataKey="rejected" stroke="#f87171" strokeWidth={2} dot={false} name="Rejected" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+            <h3 className="text-sm font-semibold text-slate-300 mb-4">Kaizens</h3>
+            {!hasKaizens ? <div className="text-slate-600 text-sm py-8 text-center">No kaizen data for this period</div> : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data.kaizens} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+                  <CartesianGrid stroke={GRID_COLOR} vertical={false} />
+                  <XAxis dataKey="month" tick={TICK_STYLE} tickLine={false} axisLine={false} />
+                  <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#94a3b8' }} itemStyle={{ color: '#e2e8f0' }} />
+                  <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+                  <Bar dataKey="created" fill="#818cf8" radius={[3,3,0,0]} name="Created" />
+                  <Bar dataKey="approved" fill="#34d399" radius={[3,3,0,0]} name="Approved" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+            <h3 className="text-sm font-semibold text-slate-300 mb-4">Rewards</h3>
+            {!hasRewards ? <div className="text-slate-600 text-sm py-8 text-center">No reward data for this period</div> : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data.rewards} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+                  <CartesianGrid stroke={GRID_COLOR} vertical={false} />
+                  <XAxis dataKey="month" tick={TICK_STYLE} tickLine={false} axisLine={false} />
+                  <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#94a3b8' }} itemStyle={{ color: '#e2e8f0' }} />
+                  <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+                  <Bar dataKey="regular" fill="#60a5fa" radius={[3,3,0,0]} name="Regular" />
+                  <Bar dataKey="special" fill="#c084fc" radius={[3,3,0,0]} name="Special" />
+                  <Bar dataKey="high_impact" fill="#fbbf24" radius={[3,3,0,0]} name="High Impact" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function AnalyticsPage() {
-  const [tab, setTab] = useState<Tab>('zones')
+  const [tab, setTab] = useState<Tab>('trends')
 
   return (
     <PageTransition>
@@ -216,11 +300,12 @@ export function AnalyticsPage() {
 
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Analytics</h1>
-          <p className="text-sm text-slate-400 mt-1">Breakdown by zone, department, category — plus data exports</p>
+          <p className="text-sm text-slate-400 mt-1">Trends, breakdowns by zone, department, category — plus data exports</p>
         </div>
 
         <TabBar active={tab} onChange={setTab} />
 
+        {tab === 'trends'      && <TrendsTab />}
         {tab === 'zones'       && <ZonesChart />}
         {tab === 'departments' && <DepartmentsChart />}
         {tab === 'categories'  && <CategoriesChart />}

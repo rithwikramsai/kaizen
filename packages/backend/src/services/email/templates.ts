@@ -2,6 +2,8 @@ export type EmailEvent =
   | 'STEP_ASSIGNED'
   | 'IDEA_APPROVED'
   | 'IDEA_REJECTED'
+  | 'KAIZEN_APPROVED'
+  | 'KAIZEN_REJECTED'
   | 'ONE_PAGER_SUBMITTED'
   | 'REWARD_ASSIGNED'
   | 'HIGH_IMPACT_NOMINATED'
@@ -76,6 +78,42 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           ctx.comment ? `Reviewer comment: ${ctx.comment}` : '',
           '',
           `You may revise and resubmit after addressing the feedback above.`,
+          '',
+          `Regards,`,
+          APP_NAME,
+        ]),
+      }
+
+    case 'KAIZEN_APPROVED':
+      return {
+        subject: `Congratulations! Your Kaizen Has Been Fully Approved`,
+        body: lines([
+          `Dear ${name},`,
+          '',
+          `Your implemented Kaizen has been reviewed and fully approved.`,
+          '',
+          ctx.kaizenTitle ? `Title: ${ctx.kaizenTitle}` : '',
+          ctx.kaizenRef ? `Kaizen Reference: ${ctx.kaizenRef}` : '',
+          '',
+          `Your Kaizen is now eligible for Rewards & Recognition. The Plant OPEX team will be in touch.`,
+          '',
+          `Regards,`,
+          APP_NAME,
+        ]),
+      }
+
+    case 'KAIZEN_REJECTED':
+      return {
+        subject: `Update on Your Kaizen Implementation`,
+        body: lines([
+          `Dear ${name},`,
+          '',
+          `After review, your Kaizen implementation documentation has not been approved at this time.`,
+          '',
+          ctx.kaizenRef ? `Kaizen Reference: ${ctx.kaizenRef}` : '',
+          ctx.comment ? `Reviewer comment: ${ctx.comment}` : '',
+          '',
+          `Please address the feedback and resubmit your One Pager documentation.`,
           '',
           `Regards,`,
           APP_NAME,

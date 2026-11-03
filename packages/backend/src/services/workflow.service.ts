@@ -342,10 +342,11 @@ export async function processWorkflowAction(params: {
           })
         }
 
-        void sendEmailForEvent('IDEA_APPROVED', instance.initiated_by, {
-          entityType: instance.entity_type,
-          entityId: instance.entity_id,
-        })
+        void sendEmailForEvent(
+          instance.workflow_type === 'IDEA_APPROVAL' ? 'IDEA_APPROVED' : 'KAIZEN_APPROVED',
+          instance.initiated_by,
+          { entityType: instance.entity_type, entityId: instance.entity_id },
+        )
 
         await engine.createAuditLog({
           performedBy: params.actorId,
@@ -491,11 +492,11 @@ export async function processWorkflowAction(params: {
         entityId: instance.entity_id,
       })
 
-      void sendEmailForEvent('IDEA_REJECTED', instance.initiated_by, {
-        comment: params.comment!,
-        entityType: instance.entity_type,
-        entityId: instance.entity_id,
-      })
+      void sendEmailForEvent(
+        instance.workflow_type === 'IDEA_APPROVAL' ? 'IDEA_REJECTED' : 'KAIZEN_REJECTED',
+        instance.initiated_by,
+        { comment: params.comment!, entityType: instance.entity_type, entityId: instance.entity_id },
+      )
 
       await engine.createAuditLog({
         performedBy: params.actorId,

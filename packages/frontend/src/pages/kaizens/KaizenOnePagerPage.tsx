@@ -266,26 +266,18 @@ export function KaizenOnePagerPage() {
           isReadOnly={isReadOnly}
           onViewIdea={() => navigate(`/ideas/${kaizen.idea.id}`)}
         />
-        {/* Reviewer action panel shown below preview when applicable */}
         {myPendingStep && (
           <div className="max-w-4xl mx-auto px-4 pb-10 -mt-4">
             <div className="glass rounded-2xl p-6 border border-indigo-500/20">
               <h2 className="text-sm font-semibold text-indigo-400 uppercase tracking-widest mb-4">
                 Your Review — {myPendingStep.stage_code.replace(/_/g, ' ')}
               </h2>
-
               {isSmeStep && (
                 <label className="flex items-center gap-2 text-sm text-slate-300 mb-4 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={sciTechFlag}
-                    onChange={(e) => setSciTechFlag(e.target.checked)}
-                    className="accent-indigo-500"
-                  />
+                  <input type="checkbox" checked={sciTechFlag} onChange={(e) => setSciTechFlag(e.target.checked)} className="accent-indigo-500" />
                   Sci-Tech Communication Required
                 </label>
               )}
-
               <textarea
                 value={reviewComment}
                 onChange={(e) => { setReviewComment(e.target.value); setCommentError(false) }}
@@ -294,27 +286,14 @@ export function KaizenOnePagerPage() {
                 className={`w-full bg-white/5 border ${commentError ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-none transition-all mb-4`}
               />
               {commentError && <p className="text-xs text-red-400 mb-3">Comment is required for Return and Reject.</p>}
-
               <div className="flex gap-3">
-                <button
-                  onClick={() => reviewMutation.mutate('APPROVE')}
-                  disabled={reviewMutation.isPending}
-                  className="px-5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
-                >
+                <button onClick={() => reviewMutation.mutate('APPROVE')} disabled={reviewMutation.isPending} className="px-5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50">
                   {reviewMutation.isPending ? 'Processing…' : '✓ Approve'}
                 </button>
-                <button
-                  onClick={() => reviewMutation.mutate('RETURN')}
-                  disabled={reviewMutation.isPending}
-                  className="px-5 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/25 text-amber-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
-                >
+                <button onClick={() => reviewMutation.mutate('RETURN')} disabled={reviewMutation.isPending} className="px-5 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/25 text-amber-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50">
                   ↩ Return
                 </button>
-                <button
-                  onClick={() => reviewMutation.mutate('REJECT')}
-                  disabled={reviewMutation.isPending}
-                  className="px-5 py-2 bg-red-500/15 hover:bg-red-500/25 border border-red-500/25 text-red-400 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
-                >
+                <button onClick={() => reviewMutation.mutate('REJECT')} disabled={reviewMutation.isPending} className="px-5 py-2 bg-red-500/15 hover:bg-red-500/25 border border-red-500/25 text-red-400 text-sm font-medium rounded-xl transition-all disabled:opacity-50">
                   ✕ Reject
                 </button>
               </div>
@@ -623,10 +602,14 @@ function OnePagerPreview({
   kaizen,
   values,
   onClose,
+  isReadOnly,
+  onViewIdea,
 }: {
   kaizen: NonNullable<ReturnType<typeof getKaizen> extends Promise<infer T> ? T : never>
   values: OnePagerFormValues
   onClose: () => void
+  isReadOnly?: boolean
+  onViewIdea?: () => void
 }) {
   const ratio =
     values.cost && values.benefit && values.cost > 0
@@ -637,21 +620,34 @@ function OnePagerPreview({
     <PageTransition>
       <div className="max-w-4xl">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold text-white">One Pager Preview</h1>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 glass hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-sm font-medium rounded-xl transition-all"
-          >
-            ← Back to Form
-          </button>
+          <h1 className="text-xl font-bold text-white">One Pager</h1>
+          {!isReadOnly && (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 glass hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-sm font-medium rounded-xl transition-all"
+            >
+              ✎ Edit
+            </button>
+          )}
         </div>
 
         <div className="glass rounded-2xl p-8 space-y-6 border border-indigo-500/15">
           {/* Title block */}
           <div className="border-b border-white/10 pb-4">
-            {kaizen.kaizen_id && (
-              <p className="text-xs font-mono text-indigo-400 mb-1">{kaizen.kaizen_id}</p>
-            )}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {kaizen.kaizen_id && (
+                <span className="text-xs font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-md">{kaizen.kaizen_id}</span>
+              )}
+              {kaizen.idea?.registration_id && (
+                <button
+                  onClick={onViewIdea}
+                  className="text-xs font-mono bg-white/5 text-slate-400 border border-white/10 px-2 py-0.5 rounded-md hover:bg-white/10 hover:text-indigo-300 transition-colors"
+                  title="View original idea"
+                >
+                  {kaizen.idea.registration_id}
+                </button>
+              )}
+            </div>
             <h2 className="text-2xl font-bold text-white">{values.title}</h2>
             <p className="text-sm text-slate-400 mt-1">
               {kaizen.zone.name}{kaizen.department && ` · ${kaizen.department.name}`}

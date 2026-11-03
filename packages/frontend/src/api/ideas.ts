@@ -78,7 +78,14 @@ function buildQuery(params?: IdeasListParams): string {
 }
 
 export async function listIdeas(params?: IdeasListParams): Promise<PaginatedResponse<IdeaListItem>> {
-  return authFetch<PaginatedResponse<IdeaListItem>>(`/ideas${buildQuery(params)}`)
+  const token = localStorage.getItem('kiet_access_token')
+  const res = await fetch(
+    `${(import.meta.env['VITE_API_BASE_URL'] as string | undefined) ?? '/api/v1'}/ideas${buildQuery(params)}`,
+    { headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } },
+  )
+  const body = (await res.json()) as { success: boolean; data: IdeaListItem[]; meta: PaginatedResponse<IdeaListItem>['meta']; error?: { message: string } }
+  if (!res.ok) throw new Error(body.error?.message ?? 'Failed to load ideas')
+  return { success: true, data: body.data ?? [], meta: body.meta ?? { page: 1, page_size: 12, total: 0 } }
 }
 
 export async function getIdea(id: string): Promise<IdeaDetail> {
