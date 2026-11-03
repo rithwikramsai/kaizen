@@ -31,7 +31,7 @@ interface LoginResult {
   }
 }
 
-async function loadUserPermissions(userId: string): Promise<Permission[]> {
+export async function loadUserPermissions(userId: string): Promise<Permission[]> {
   const result = await pool.query<{ code: string }>(
     `SELECT DISTINCT p.code
      FROM user_roles ur
@@ -43,7 +43,7 @@ async function loadUserPermissions(userId: string): Promise<Permission[]> {
   return result.rows.map((r) => r.code as Permission)
 }
 
-async function getPrimaryPlantId(userId: string): Promise<string> {
+export async function getPrimaryPlantId(userId: string): Promise<string> {
   const result = await pool.query<UserRoleRow>(
     `SELECT plant_id FROM user_roles WHERE user_id = $1 ORDER BY granted_at ASC LIMIT 1`,
     [userId],
@@ -51,7 +51,7 @@ async function getPrimaryPlantId(userId: string): Promise<string> {
   return result.rows[0]?.plant_id ?? ''
 }
 
-function signAccessToken(
+export function signAccessToken(
   userId: string,
   email: string,
   plantId: string,
@@ -64,7 +64,7 @@ function signAccessToken(
   )
 }
 
-async function storeRefreshToken(userId: string): Promise<string> {
+export async function storeRefreshToken(userId: string): Promise<string> {
   const raw = generateToken()
   const hash = hashToken(raw)
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
