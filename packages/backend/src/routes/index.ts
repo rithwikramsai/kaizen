@@ -30,8 +30,7 @@ router.use('/kaizens', kaizensRouter)
 router.use('/rewards', rewardsRouter)
 router.use('/notifications', notificationsRouter)
 router.use('/reports', reportsRouter)
-router.use('/reports', analyticsRouter)
+router.use('/analytics', analyticsRouter)
 router.use('/admin', adminRouter)
-router.use('/public', publicRouter)
 
 export { router }

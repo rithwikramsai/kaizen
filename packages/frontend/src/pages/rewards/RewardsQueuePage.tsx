@@ -134,9 +134,9 @@ function GearMenu({
 
 // ─── Kaizen card ──────────────────────────────────────────────────────────────
 
-function KaizenCard({ item, canAssign, onAssign, onNominate, isNominating, onViewNomination }: {
+function KaizenCard({ item, canAssign, onAssign, onNominate, isNominating, onViewNomination, onViewIdea }: {
   item: ApprovedKaizenForRR; canAssign: boolean; onAssign: () => void
-  onNominate: () => void; isNominating: boolean; onViewNomination?: () => void
+  onNominate: () => void; isNominating: boolean; onViewNomination?: () => void; onViewIdea?: () => void
 }) {
   return (
     <div className="glass rounded-2xl p-5 flex flex-col gap-3 hover:border-white/10 transition-colors">
@@ -145,7 +145,11 @@ function KaizenCard({ item, canAssign, onAssign, onNominate, isNominating, onVie
           {item.kaizen_ref && (
             <span className="font-mono text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-md">{item.kaizen_ref}</span>
           )}
-          <span className="font-mono text-[10px] bg-white/5 text-slate-400 border border-white/8 px-2 py-0.5 rounded-md">{item.registration_id}</span>
+          <button
+            onClick={onViewIdea}
+            className="font-mono text-[10px] bg-white/5 text-slate-400 border border-white/8 px-2 py-0.5 rounded-md hover:bg-white/10 hover:text-indigo-300 transition-colors cursor-pointer"
+            title="View idea details"
+          >{item.registration_id}</button>
           <StatusChip item={item} />
         </div>
         <GearMenu item={item} canAssign={canAssign} onAssign={onAssign} onNominate={onNominate} isNominating={isNominating} onViewNomination={onViewNomination} />
@@ -366,6 +370,7 @@ export function RewardsQueuePage() {
                 onNominate={() => { setNominatingId(item.kaizen_id); nominateMutation.mutate(item.kaizen_id) }}
                 isNominating={nominatingId === item.kaizen_id && nominateMutation.isPending}
                 onViewNomination={item.nomination ? () => navigate(`/rewards/nominations/${item.nomination!.id}`) : undefined}
+                onViewIdea={() => navigate(`/ideas/${item.idea_id}`)}
               />
             ))}
           </div>

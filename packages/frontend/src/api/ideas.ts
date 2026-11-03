@@ -78,33 +78,40 @@ function buildQuery(params?: IdeasListParams): string {
 }
 
 export async function listIdeas(params?: IdeasListParams): Promise<PaginatedResponse<IdeaListItem>> {
-  return authFetch<PaginatedResponse<IdeaListItem>>(`/ideas${buildQuery(params)}`)
+  const token = localStorage.getItem('kiet_access_token')
+  const res = await fetch(
+    `${(import.meta.env['VITE_API_BASE_URL'] as string | undefined) ?? '/api/v1'}/ideas${buildQuery(params)}`,
+    { headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } },
+  )
+  const body = (await res.json()) as { success: boolean; data: IdeaListItem[]; meta: PaginatedResponse<IdeaListItem>['meta']; error?: { message: string } }
+  if (!res.ok) throw new Error(body.error?.message ?? 'Failed to load ideas')
+  return { success: true, data: body.data ?? [], meta: body.meta ?? { page: 1, page_size: 12, total: 0 } }
 }
 
-export async function getIdea(id: string): Promise<{ success: true; data: IdeaDetail }> {
-  return authFetch<{ success: true; data: IdeaDetail }>(`/ideas/${id}`)
+export async function getIdea(id: string): Promise<IdeaDetail> {
+  return authFetch<IdeaDetail>(`/ideas/${id}`)
 }
 
-export async function createIdea(body: CreateIdeaRequest): Promise<{ success: true; data: CreateIdeaResult }> {
-  return authFetch<{ success: true; data: CreateIdeaResult }>('/ideas', {
+export async function createIdea(body: CreateIdeaRequest): Promise<CreateIdeaResult> {
+  return authFetch<CreateIdeaResult>('/ideas', {
     method: 'POST',
     body: JSON.stringify(body),
   })
 }
 
-export async function updateIdea(id: string, body: Partial<CreateIdeaRequest>): Promise<{ success: true; data: IdeaDetail }> {
-  return authFetch<{ success: true; data: IdeaDetail }>(`/ideas/${id}`, {
+export async function updateIdea(id: string, body: Partial<CreateIdeaRequest>): Promise<IdeaDetail> {
+  return authFetch<IdeaDetail>(`/ideas/${id}`, {
     method: 'PUT',
     body: JSON.stringify(body),
   })
 }
 
 export async function deleteIdea(id: string): Promise<void> {
-  await authFetch<{ success: true; data: null }>(`/ideas/${id}`, { method: 'DELETE' })
+  await authFetch<null>(`/ideas/${id}`, { method: 'DELETE' })
 }
 
-export async function getIdeaTimeline(id: string): Promise<{ success: true; data: TimelineEntry[] }> {
-  return authFetch<{ success: true; data: TimelineEntry[] }>(`/ideas/${id}/timeline`)
+export async function getIdeaTimeline(id: string): Promise<TimelineEntry[]> {
+  return authFetch<TimelineEntry[]>(`/ideas/${id}/timeline`)
 }
 
 export interface WorkflowStep {
@@ -125,8 +132,7 @@ export interface WorkflowStatus {
 }
 
 export async function getIdeaWorkflowStatus(id: string): Promise<WorkflowStatus> {
-  const res = await authFetch<{ success: true; data: WorkflowStatus }>(`/workflow/ideas/${id}/status`)
-  return res.data
+  return authFetch<WorkflowStatus>(`/workflow/ideas/${id}/status`)
 }
 
 export interface ReviewQueueItem {
@@ -143,8 +149,7 @@ export interface ReviewQueueItem {
 }
 
 export async function getMyReviewQueue(): Promise<ReviewQueueItem[]> {
-  const res = await authFetch<{ success: true; data: ReviewQueueItem[] }>('/workflow/my-queue')
-  return res.data
+  return authFetch<ReviewQueueItem[]>('/workflow/my-queue')
 }
 
 export async function submitIdeaWorkflowAction(

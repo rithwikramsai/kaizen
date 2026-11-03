@@ -123,7 +123,7 @@ export function SLAReportPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <SlaKpiCard
                 label="Avg Step Time"
-                value={data.avg_step_time_hours != null ? data.avg_step_time_hours.toFixed(1) : '—'}
+                value={data.avg_step_time_hours != null ? Number(data.avg_step_time_hours).toFixed(1) : '—'}
                 unit="hrs"
                 accent="default"
               />

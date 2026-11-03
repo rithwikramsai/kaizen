@@ -389,10 +389,7 @@ export function Layout() {
               <NavItem to="/reports/dashboard"  icon={<PieChartIcon />}    label="Dashboard" />
             )}
             {hasPermission('CAN_VIEW_REPORTS') && (
-              <NavItem to="/reports/trends"     icon={<TrendingUpIcon />}  label="Trends" />
-            )}
-            {hasPermission('CAN_VIEW_REPORTS') && (
-              <NavItem to="/reports/analytics"  icon={<LayersIcon />}      label="Analytics" />
+              <NavItem to="/reports/analytics"  icon={<TrendingUpIcon />}  label="Analytics" />
             )}
             {hasPermission('CAN_VIEW_REPORTS') && (
               <NavItem to="/reports/sla"        icon={<AlertCircleIcon />} label="SLA Report" />
