@@ -33,9 +33,12 @@ interface IdeaRow {
 }
 
 export interface CreateIdeaParams {
-  // Idea content (new business fields)
+  // Idea content
+  title?: string             // Optional — auto-generated from problem_statement if omitted
   problem_statement: string
   description: string        // "Idea Description" in the form
+  proposed_solution?: string
+  expected_benefits?: string
   remarks?: string
   // Operational location (idea context, drives workflow routing)
   plant_id: string
@@ -106,8 +109,10 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
 
     const registrationId = await generateRegistrationId(plantCode)
 
-    // Auto-generate title from the first 100 chars of problem_statement
-    const autoTitle = params.problem_statement.slice(0, 100).trim()
+    // Title: use explicitly provided title, or auto-generate from first 100 chars of problem_statement
+    const title = (params.title && params.title.trim())
+      ? params.title.trim()
+      : params.problem_statement.slice(0, 100).trim()
 
     // Insert idea
     // Normalize empty strings to null for optional UUID/text columns
@@ -116,9 +121,10 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
     const ideaRes = await client.query<IdeaRow>(
       `INSERT INTO ideas
          (registration_id, submitted_by, plant_id, zone_id, department_id, function_id, hall_id, location_id,
-          value_stream, category_id, sub_category_id, title, description, problem_statement, remarks,
+          value_stream, category_id, sub_category_id, title, description, problem_statement,
+          proposed_solution, expected_benefits, remarks,
           is_anonymous, status, submitted_at, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'SUBMITTED',NOW(),NOW(),NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'SUBMITTED',NOW(),NOW(),NOW())
        RETURNING *`,
       [
         registrationId,
@@ -132,9 +138,11 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
         orNull(params.value_stream),
         params.category_id,
         orNull(params.sub_category_id),
-        autoTitle,
+        title,
         params.description,
         params.problem_statement,
+        orNull(params.proposed_solution),
+        orNull(params.expected_benefits),
         orNull(params.remarks),
         params.is_anonymous ?? false,
       ],
@@ -176,7 +184,7 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
     await client.query(
       `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload, performed_at)
        VALUES ($1, 'IDEA_SUBMITTED', 'idea', $2, $3, NOW())`,
-      [params.submittedBy, idea.id, JSON.stringify({ registration_id: registrationId, title: autoTitle })],
+      [params.submittedBy, idea.id, JSON.stringify({ registration_id: registrationId, title })],
     )
 
     await client.query('COMMIT')
@@ -285,7 +293,7 @@ export async function listIdeas(
        wi.current_stage, wi.current_status,
        i.submitted_at, i.created_at
      FROM ideas i
-     JOIN users u ON u.id = i.submitted_by
+     LEFT JOIN users u ON u.id = i.submitted_by
      JOIN plants p ON p.id = i.plant_id
      JOIN zones z ON z.id = i.zone_id
      JOIN categories c ON c.id = i.category_id

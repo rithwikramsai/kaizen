@@ -17,7 +17,6 @@ import { RewardHistoryPage } from '../pages/rewards/RewardHistoryPage.js'
 import { LeaderboardPage } from '../pages/rewards/LeaderboardPage.js'
 import { NotificationCenterPage } from '../pages/notifications/NotificationCenterPage.js'
 import { DashboardPage } from '../pages/reports/DashboardPage.js'
-import { TrendsPage } from '../pages/reports/TrendsPage.js'
 import { AnalyticsPage } from '../pages/reports/AnalyticsPage.js'
 import { SLAReportPage } from '../pages/reports/SLAReportPage.js'
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage.js'
@@ -53,7 +52,7 @@ export const router = createBrowserRouter([
           { path: 'rewards/leaderboard', element: <LeaderboardPage /> },
           { path: 'notifications', element: <NotificationCenterPage /> },
           { path: 'reports/dashboard',  element: <DashboardPage /> },
-          { path: 'reports/trends',     element: <TrendsPage /> },
+          { path: 'reports/trends',     element: <Navigate to="/reports/analytics" replace /> },
           { path: 'reports/analytics',  element: <AnalyticsPage /> },
           { path: 'reports/sla',        element: <SLAReportPage /> },
           { path: 'admin',              element: <AdminDashboardPage /> },

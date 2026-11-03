@@ -7,52 +7,43 @@ export interface FunctionItem { id: string; name: string; code: string }
 export interface Hall { id: string; name: string; code: string }
 export interface Location { id: string; name: string; code: string }
 export interface Category { id: string; name: string; code: string }
-export interface SubCategory { id: string; name: string; code: string }
+export interface SubCategory { id: string; name: string; code: string; category_id: string }
 export interface Tag { id: string; name: string; color: string }
 
-interface ListResponse<T> { success: true; data: T[] }
+// authFetch already unwraps body.data — return the array directly
 
-export async function getPlants(): Promise<Plant[]> {
-  const r = await authFetch<ListResponse<Plant>>('/master/org/plants')
-  return r.data
+export function getPlants(): Promise<Plant[]> {
+  return authFetch<Plant[]>('/master/org/plants')
 }
 
-export async function getZonesByPlant(plantId: string): Promise<Zone[]> {
-  const r = await authFetch<ListResponse<Zone>>(`/master/org/plants/${plantId}/zones`)
-  return r.data
+export function getZonesByPlant(plantId: string): Promise<Zone[]> {
+  return authFetch<Zone[]>(`/master/org/plants/${plantId}/zones`)
 }
 
-export async function getDeptsByZone(zoneId: string): Promise<Dept[]> {
-  const r = await authFetch<ListResponse<Dept>>(`/master/org/zones/${zoneId}/departments`)
-  return r.data
+export function getDeptsByZone(zoneId: string): Promise<Dept[]> {
+  return authFetch<Dept[]>(`/master/org/zones/${zoneId}/departments`)
 }
 
-export async function getFunctionsByDept(deptId: string): Promise<FunctionItem[]> {
-  const r = await authFetch<ListResponse<FunctionItem>>(`/master/org/departments/${deptId}/functions`)
-  return r.data
+export function getFunctionsByDept(deptId: string): Promise<FunctionItem[]> {
+  return authFetch<FunctionItem[]>(`/master/org/departments/${deptId}/functions`)
 }
 
-export async function getHallsByFunction(funcId: string): Promise<Hall[]> {
-  const r = await authFetch<ListResponse<Hall>>(`/master/org/functions/${funcId}/halls`)
-  return r.data
+export function getHallsByFunction(funcId: string): Promise<Hall[]> {
+  return authFetch<Hall[]>(`/master/org/functions/${funcId}/halls`)
 }
 
-export async function getLocationsByHall(hallId: string): Promise<Location[]> {
-  const r = await authFetch<ListResponse<Location>>(`/master/org/halls/${hallId}/locations`)
-  return r.data
+export function getLocationsByHall(hallId: string): Promise<Location[]> {
+  return authFetch<Location[]>(`/master/org/halls/${hallId}/locations`)
 }
 
-export async function getCategories(): Promise<Category[]> {
-  const r = await authFetch<ListResponse<Category>>('/master/categories')
-  return r.data
+export function getCategories(): Promise<Category[]> {
+  return authFetch<Category[]>('/master/categories')
 }
 
-export async function getSubCategoriesByCategory(catId: string): Promise<SubCategory[]> {
-  const r = await authFetch<ListResponse<SubCategory>>(`/master/sub-categories?category_id=${catId}`)
-  return r.data
+export function getSubCategoriesByCategory(catId: string): Promise<SubCategory[]> {
+  return authFetch<SubCategory[]>(`/master/sub-categories?category_id=${catId}`)
 }
 
-export async function getTags(): Promise<Tag[]> {
-  const r = await authFetch<ListResponse<Tag>>('/master/tags')
-  return r.data
+export function getTags(): Promise<Tag[]> {
+  return authFetch<Tag[]>('/master/tags')
 }

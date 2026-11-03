@@ -47,34 +47,34 @@ export interface SLAReport {
 // ─── API calls ────────────────────────────────────────────────────────────────
 
 export function getTrends(year: number): Promise<TrendsData> {
-  return authFetch<TrendsData>(`/reports/trends?year=${year}`)
+  return authFetch<TrendsData>(`/analytics/trends?year=${year}`)
 }
 
 export function getPlantAnalytics(): Promise<PlantSummary[]> {
-  return authFetch<PlantSummary[]>('/reports/plants')
+  return authFetch<PlantSummary[]>('/analytics/plants')
 }
 
 export function getZoneAnalytics(): Promise<ZoneSummary[]> {
-  return authFetch<ZoneSummary[]>('/reports/zones')
+  return authFetch<ZoneSummary[]>('/analytics/zones')
 }
 
 export function getDepartmentAnalytics(): Promise<DepartmentSummary[]> {
-  return authFetch<DepartmentSummary[]>('/reports/departments')
+  return authFetch<DepartmentSummary[]>('/analytics/departments')
 }
 
 export function getCategoryAnalytics(): Promise<CategorySummary[]> {
-  return authFetch<CategorySummary[]>('/reports/categories')
+  return authFetch<CategorySummary[]>('/analytics/categories')
 }
 
 export function getSLAReport(): Promise<SLAReport> {
-  return authFetch<SLAReport>('/reports/sla')
+  return authFetch<SLAReport>('/analytics/sla')
 }
 
 export type ExportDataset = 'ideas' | 'kaizens' | 'rewards' | 'leaderboard'
 
 export async function downloadExport(format: 'csv' | 'xlsx', dataset: ExportDataset): Promise<void> {
   const token = localStorage.getItem('token')
-  const res = await fetch(`/api/reports/export/${format}?dataset=${dataset}`, {
+  const res = await fetch(`/api/analytics/export/${format}?dataset=${dataset}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!res.ok) throw new Error(`Export failed: ${res.status}`)

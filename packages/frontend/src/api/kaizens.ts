@@ -119,33 +119,27 @@ export interface SubmitOnePagerResult {
 // ─── API functions ────────────────────────────────────────────────────────────
 
 export async function getApprovedQueue(): Promise<QueueIdea[]> {
-  const res = await authFetch<{ success: true; data: QueueIdea[] }>('/kaizens/queue')
-  return res.data
+  return authFetch<QueueIdea[]>('/kaizens/queue')
 }
 
 export async function markImplemented(ideaId: string): Promise<{ kaizen_uuid: string; kaizen_id: string }> {
-  const res = await authFetch<{ success: true; data: { kaizen_uuid: string; kaizen_id: string } }>(
+  return authFetch<{ kaizen_uuid: string; kaizen_id: string }>(
     `/kaizens/ideas/${ideaId}/mark-implemented`,
     { method: 'POST' },
   )
-  return res.data
 }
 
 export async function getKaizen(kaizenId: string): Promise<KaizenDetail> {
-  const res = await authFetch<{ success: true; data: KaizenDetail }>(`/kaizens/${kaizenId}`)
-  return res.data
+  return authFetch<KaizenDetail>(`/kaizens/${kaizenId}`)
 }
 
 export async function saveKaizenDraft(kaizenId: string, payload: SaveDraftPayload): Promise<void> {
-  await authFetch<{ success: true; data: null }>(`/kaizens/${kaizenId}/draft`, {
+  await authFetch<null>(`/kaizens/${kaizenId}/draft`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   })
 }
 
 export async function submitOnePager(kaizenId: string): Promise<SubmitOnePagerResult> {
-  const res = await authFetch<{ success: true; data: SubmitOnePagerResult }>(`/kaizens/${kaizenId}/submit`, {
-    method: 'POST',
-  })
-  return res.data
+  return authFetch<SubmitOnePagerResult>(`/kaizens/${kaizenId}/submit`, { method: 'POST' })
 }
