@@ -108,16 +108,16 @@ function GearMenu({
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] bg-[#1a1a2e] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
             {canAssign && !item.reward && !item.nomination && (
-              <>
-                <button onClick={() => { setOpen(false); onAssign() }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-amber-300 hover:bg-amber-500/10 transition-colors">
-                  Assign Regular R&amp;R
-                </button>
-                <button onClick={() => { setOpen(false); onNominate() }} disabled={isNominating}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-indigo-300 hover:bg-indigo-500/10 transition-colors disabled:opacity-50">
-                  {isNominating ? 'Nominating…' : 'Select as High Impact'}
-                </button>
-              </>
+              <button onClick={() => { setOpen(false); onAssign() }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-amber-300 hover:bg-amber-500/10 transition-colors">
+                Assign Regular R&amp;R
+              </button>
+            )}
+            {canAssign && !item.nomination && (
+              <button onClick={() => { setOpen(false); onNominate() }} disabled={isNominating}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-indigo-300 hover:bg-indigo-500/10 transition-colors disabled:opacity-50">
+                {isNominating ? 'Nominating…' : 'Select as High Impact'}
+              </button>
             )}
             {item.nomination && onViewNomination && (
               <button onClick={() => { setOpen(false); onViewNomination() }}

@@ -210,7 +210,7 @@ export async function markImplemented(
     // Audit log (immutable)
     await client.query(
       `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload, performed_at)
-       VALUES ($1, 'MARK_IMPLEMENTED', 'idea', $2, $3, NOW())`,
+       VALUES ($1, 'MARKED_IMPLEMENTED', 'idea', $2, $3, NOW())`,
       [
         actorId,
         ideaId,
@@ -631,7 +631,7 @@ export async function assignImplementationOwner(
 
   await pool.query(
     `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload, performed_at)
-     VALUES ($1, 'IMPL_OWNER_ASSIGNED', 'kaizen', $2, $3, NOW())`,
+     VALUES ($1, 'MARKED_IMPLEMENTED', 'kaizen', $2, $3, NOW())`,
     [actorId, kaizenId, JSON.stringify({ new_owner: newOwnerId })],
   )
 }

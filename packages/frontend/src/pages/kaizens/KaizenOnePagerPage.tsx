@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getKaizen, saveKaizenDraft, submitOnePager } from '../../api/kaizens.js'
+import { getKaizen, saveKaizenDraft, submitOnePager, getKaizenWorkflowStatus, submitKaizenWorkflowAction } from '../../api/kaizens.js'
+import { useAuth } from '../../hooks/useAuth.js'
 import { FileUpload } from '../../components/FileUpload.js'
 import { useToast } from '../../hooks/useToast.js'
 import { PageTransition } from '../../components/PageTransition.js'
@@ -84,7 +85,10 @@ export function KaizenOnePagerPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { addToast } = useToast()
+  const { user } = useAuth()
   const [isPreview, setIsPreview] = useState(true)
+  const [reviewComment, setReviewComment] = useState('')
+  const [commentError, setCommentError] = useState(false)
 
   // Attachment file IDs managed outside react-hook-form (FileUpload uses callbacks, not form fields)
   const [beforeFileIds, setBeforeFileIds] = useState<string[]>([])
@@ -95,6 +99,43 @@ export function KaizenOnePagerPage() {
     queryKey: ['kaizen', kaizenId],
     queryFn: () => getKaizen(kaizenId!),
     enabled: !!kaizenId,
+  })
+
+  const { data: wfStatus } = useQuery({
+    queryKey: ['kaizen-workflow-status', kaizenId],
+    queryFn: () => getKaizenWorkflowStatus(kaizenId!),
+    enabled: !!kaizenId && (kaizen?.status === 'ONE_PAGER_SUBMITTED'),
+    staleTime: 30_000,
+  })
+
+  const myPendingStep = wfStatus?.steps.find(
+    (s) => s.assigned_to.id === user?.id && s.status === 'PENDING',
+  )
+  const isSmeStep = myPendingStep?.stage_code === 'SME_REVIEW'
+  const [sciTechFlag, setSciTechFlag] = useState(false)
+
+  const reviewMutation = useMutation({
+    mutationFn: (action: 'APPROVE' | 'RETURN' | 'REJECT') => {
+      if ((action === 'RETURN' || action === 'REJECT') && !reviewComment.trim()) {
+        setCommentError(true)
+        throw new Error('Comment is required for Return and Reject')
+      }
+      setCommentError(false)
+      return submitKaizenWorkflowAction(kaizenId!, {
+        action,
+        comment: reviewComment.trim() || undefined,
+        ...(isSmeStep ? { sciTechFlag } : {}),
+      })
+    },
+    onSuccess: (_data, action) => {
+      void queryClient.invalidateQueries({ queryKey: ['kaizen', kaizenId] })
+      void queryClient.invalidateQueries({ queryKey: ['kaizen-workflow-status', kaizenId] })
+      void queryClient.invalidateQueries({ queryKey: ['my-review-queue'] })
+      setReviewComment('')
+      addToast(`Action "${action}" submitted successfully`, 'success')
+      navigate('/review')
+    },
+    onError: (err: Error) => addToast(err.message, 'error'),
   })
 
   // Initialise attachment state from server data (only when kaizen ID first resolves)
@@ -216,7 +257,51 @@ export function KaizenOnePagerPage() {
   }
 
   if (isPreview) {
-    return <OnePagerPreview kaizen={kaizen} values={getValues()} onClose={() => setIsPreview(false)} isReadOnly={isReadOnly} onViewIdea={() => navigate(`/ideas/${kaizen.idea.id}`)} />
+    return (
+      <>
+        <OnePagerPreview
+          kaizen={kaizen}
+          values={getValues()}
+          onClose={() => setIsPreview(false)}
+          isReadOnly={isReadOnly}
+          onViewIdea={() => navigate(`/ideas/${kaizen.idea.id}`)}
+        />
+        {myPendingStep && (
+          <div className="max-w-4xl mx-auto px-4 pb-10 -mt-4">
+            <div className="glass rounded-2xl p-6 border border-indigo-500/20">
+              <h2 className="text-sm font-semibold text-indigo-400 uppercase tracking-widest mb-4">
+                Your Review — {myPendingStep.stage_code.replace(/_/g, ' ')}
+              </h2>
+              {isSmeStep && (
+                <label className="flex items-center gap-2 text-sm text-slate-300 mb-4 cursor-pointer">
+                  <input type="checkbox" checked={sciTechFlag} onChange={(e) => setSciTechFlag(e.target.checked)} className="accent-indigo-500" />
+                  Sci-Tech Communication Required
+                </label>
+              )}
+              <textarea
+                value={reviewComment}
+                onChange={(e) => { setReviewComment(e.target.value); setCommentError(false) }}
+                rows={3}
+                placeholder="Add a comment (required for Return and Reject)…"
+                className={`w-full bg-white/5 border ${commentError ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-none transition-all mb-4`}
+              />
+              {commentError && <p className="text-xs text-red-400 mb-3">Comment is required for Return and Reject.</p>}
+              <div className="flex gap-3">
+                <button onClick={() => reviewMutation.mutate('APPROVE')} disabled={reviewMutation.isPending} className="px-5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50">
+                  {reviewMutation.isPending ? 'Processing…' : '✓ Approve'}
+                </button>
+                <button onClick={() => reviewMutation.mutate('RETURN')} disabled={reviewMutation.isPending} className="px-5 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/25 text-amber-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50">
+                  ↩ Return
+                </button>
+                <button onClick={() => reviewMutation.mutate('REJECT')} disabled={reviewMutation.isPending} className="px-5 py-2 bg-red-500/15 hover:bg-red-500/25 border border-red-500/25 text-red-400 text-sm font-medium rounded-xl transition-all disabled:opacity-50">
+                  ✕ Reject
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    )
   }
 
   return (
@@ -450,6 +535,62 @@ export function KaizenOnePagerPage() {
             </div>
           )}
         </form>
+
+        {/* ── Reviewer Action Panel ─────────────────────────────────────── */}
+        {myPendingStep && (
+          <div className="mt-6 glass rounded-2xl p-6 border border-indigo-500/20">
+            <h2 className="text-sm font-semibold text-indigo-400 uppercase tracking-widest mb-4">
+              Your Review — {myPendingStep.stage_code.replace(/_/g, ' ')}
+            </h2>
+
+            {/* SME: Sci-Tech flag */}
+            {isSmeStep && (
+              <label className="flex items-center gap-2 text-sm text-slate-300 mb-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sciTechFlag}
+                  onChange={(e) => setSciTechFlag(e.target.checked)}
+                  className="accent-indigo-500"
+                />
+                Sci-Tech Communication Required
+              </label>
+            )}
+
+            <textarea
+              value={reviewComment}
+              onChange={(e) => { setReviewComment(e.target.value); setCommentError(false) }}
+              rows={3}
+              placeholder="Add a comment (required for Return and Reject)…"
+              className={`w-full bg-white/5 border ${commentError ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-none transition-all mb-4`}
+            />
+            {commentError && <p className="text-xs text-red-400 mb-3">Comment is required for Return and Reject.</p>}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => reviewMutation.mutate('APPROVE')}
+                disabled={reviewMutation.isPending}
+                className="px-5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+              >
+                {reviewMutation.isPending ? 'Processing…' : '✓ Approve'}
+              </button>
+              <button
+                onClick={() => reviewMutation.mutate('RETURN')}
+                disabled={reviewMutation.isPending}
+                className="px-5 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/25 text-amber-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+              >
+                ↩ Return
+              </button>
+              <button
+                onClick={() => reviewMutation.mutate('REJECT')}
+                disabled={reviewMutation.isPending}
+                className="px-5 py-2 bg-red-500/15 hover:bg-red-500/25 border border-red-500/25 text-red-400 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+              >
+                ✕ Reject
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </PageTransition>
   )

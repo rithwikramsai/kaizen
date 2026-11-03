@@ -639,10 +639,11 @@ export interface ReviewQueueItem {
   zone_name: string | null
   stage_code: string
   sla_due_at: string | null
+  action_taken_at: string | null
   workflow_instance_id: string
 }
 
-export async function getMyReviewQueue(actorId: string): Promise<ReviewQueueItem[]> {
+export async function getMyReviewQueue(actorId: string, status = 'PENDING'): Promise<ReviewQueueItem[]> {
   const res = await pool.query<{
     entity_type: string
     entity_id: string
@@ -653,6 +654,7 @@ export async function getMyReviewQueue(actorId: string): Promise<ReviewQueueItem
     zone_name: string | null
     stage_code: string
     sla_due_at: Date | null
+    action_taken_at: Date | null
     workflow_instance_id: string
   }>(
     `SELECT
@@ -665,6 +667,7 @@ export async function getMyReviewQueue(actorId: string): Promise<ReviewQueueItem
        z.name                                        AS zone_name,
        ws.stage_code,
        ws.sla_due_at,
+       ws.action_taken_at,
        wi.id                                         AS workflow_instance_id
      FROM workflow_steps ws
      JOIN workflow_instances wi ON wi.id = ws.workflow_instance_id
@@ -674,9 +677,9 @@ export async function getMyReviewQueue(actorId: string): Promise<ReviewQueueItem
      LEFT JOIN users  us ON us.id = COALESCE(i.submitted_by, k.implementation_owner)
      LEFT JOIN plants p  ON p.id  = COALESCE(i.plant_id, ki.plant_id)
      LEFT JOIN zones  z  ON z.id  = COALESCE(i.zone_id,  ki.zone_id)
-     WHERE ws.assigned_user_id = $1 AND ws.status = 'PENDING'
-     ORDER BY ws.sla_due_at ASC NULLS LAST, ws.created_at ASC`,
-    [actorId],
+     WHERE ws.assigned_user_id = $1 AND ws.status = $2
+     ORDER BY ws.action_taken_at DESC NULLS LAST, ws.sla_due_at ASC NULLS LAST, ws.created_at ASC`,
+    [actorId, status],
   )
 
   return res.rows.map((row) => ({
@@ -689,6 +692,7 @@ export async function getMyReviewQueue(actorId: string): Promise<ReviewQueueItem
     zone_name: row.zone_name,
     stage_code: row.stage_code,
     sla_due_at: row.sla_due_at ? row.sla_due_at.toISOString() : null,
+    action_taken_at: row.action_taken_at ? row.action_taken_at.toISOString() : null,
     workflow_instance_id: row.workflow_instance_id,
   }))
 }

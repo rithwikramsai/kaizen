@@ -283,16 +283,15 @@ export async function nominateHighImpact(params: {
     )
     const nominationId = nomRes.rows[0]!.id
 
-    // Auto-assign all active SC Members in the same plant
+    // Auto-assign all active Steering Committee Members in the same plant
     const scMembers = await client.query<{ user_id: string }>(
       `SELECT DISTINCT ur.user_id
        FROM user_roles ur
        JOIN roles r ON r.id = ur.role_id
-       JOIN role_permissions rp ON rp.role_id = r.id
-       JOIN permissions p ON p.id = rp.permission_id
-       WHERE p.name = 'CAN_RATE_HIGH_IMPACT'
+       JOIN users u ON u.id = ur.user_id
+       WHERE r.name = 'Steering Committee Member'
          AND ur.plant_id = $1
-         AND ur.is_active = TRUE`,
+         AND u.is_active = TRUE`,
       [actorPlantId],
     )
 
@@ -465,7 +464,7 @@ export async function submitScRating(params: {
 
     await client.query(
       `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
-       VALUES ($1, 'SC_RATING_SUBMITTED', 'high_impact_nomination', $2, $3)`,
+       VALUES ($1, 'SC_RATING_SUBMITTED', 'kaizen', $2, $3)`,
       [actorId, nominationId, JSON.stringify({ rating_score: ratingScore })],
     )
 
@@ -530,7 +529,7 @@ export async function nominateSpecialRR(params: {
 
     await client.query(
       `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
-       VALUES ($1, 'SPECIAL_REWARD_NOMINATED', 'high_impact_nomination', $2, $3)`,
+       VALUES ($1, 'SPECIAL_REWARD_NOMINATED', 'kaizen', $2, $3)`,
       [actorId, nominationId, JSON.stringify({ reward_id: rewardId, kaizen_id: kaizenId })],
     )
 
@@ -601,7 +600,7 @@ export async function nominateInterPlant(params: {
 
     await client.query(
       `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
-       VALUES ($1, 'INTER_PLANT_NOMINATED', 'high_impact_nomination', $2, $3)`,
+       VALUES ($1, 'INTER_PLANT_NOMINATED', 'kaizen', $2, $3)`,
       [actorId, nominationId, JSON.stringify({ inter_plant_id: interPlantId, competition_round: competitionRound, competition_year: competitionYear })],
     )
 

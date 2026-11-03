@@ -143,3 +143,34 @@ export async function saveKaizenDraft(kaizenId: string, payload: SaveDraftPayloa
 export async function submitOnePager(kaizenId: string): Promise<SubmitOnePagerResult> {
   return authFetch<SubmitOnePagerResult>(`/kaizens/${kaizenId}/submit`, { method: 'POST' })
 }
+
+export interface KaizenWorkflowStep {
+  step_order: number
+  stage_code: string
+  status: string
+  assigned_to: { id: string; full_name: string }
+  action_taken_at: string | null
+  sla_due_at: string | null
+}
+
+export interface KaizenWorkflowStatus {
+  workflow_instance_id: string
+  workflow_type: string
+  current_stage: string
+  current_status: string
+  steps: KaizenWorkflowStep[]
+}
+
+export function getKaizenWorkflowStatus(kaizenId: string): Promise<KaizenWorkflowStatus> {
+  return authFetch<KaizenWorkflowStatus>(`/workflow/kaizens/${kaizenId}/status`)
+}
+
+export async function submitKaizenWorkflowAction(
+  kaizenId: string,
+  payload: { action: 'APPROVE' | 'RETURN' | 'REJECT'; comment?: string; sciTechFlag?: boolean },
+): Promise<void> {
+  await authFetch<null>(`/workflow/kaizens/${kaizenId}/action`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}

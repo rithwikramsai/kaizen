@@ -145,11 +145,13 @@ export interface ReviewQueueItem {
   zone_name: string | null
   stage_code: string
   sla_due_at: string | null
+  action_taken_at: string | null
   workflow_instance_id: string
 }
 
-export async function getMyReviewQueue(): Promise<ReviewQueueItem[]> {
-  return authFetch<ReviewQueueItem[]>('/workflow/my-queue')
+export async function getMyReviewQueue(status?: 'PENDING' | 'APPROVED' | 'RETURNED' | 'REJECTED'): Promise<ReviewQueueItem[]> {
+  const qs = status ? `?status=${status}` : ''
+  return authFetch<ReviewQueueItem[]>(`/workflow/my-queue${qs}`)
 }
 
 export async function submitIdeaWorkflowAction(
