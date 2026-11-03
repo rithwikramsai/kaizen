@@ -10,6 +10,7 @@ import { createIdea } from '../../api/ideas.js'
 import { getMyProfile } from '../../api/auth.js'
 import { FileUpload } from '../../components/FileUpload.js'
 import { PageTransition } from '../../components/PageTransition.js'
+import { MicButton } from '../../components/MicButton.js'
 import {
   getZonesByPlant,
   getDeptsByZone,
@@ -430,31 +431,55 @@ export function IdeaSubmitPage() {
 
                 <Field label="Problem Statement" required error={errors.problem_statement?.message}
                   hint="What issue, waste, or safety risk have you observed?">
-                  <textarea
-                    {...register('problem_statement')}
-                    rows={3}
-                    className={inputCls}
-                    placeholder="Describe the current problem or inefficiency…"
-                  />
+                  <div className="relative">
+                    <textarea
+                      {...register('problem_statement')}
+                      rows={3}
+                      className={`${inputCls} pr-10`}
+                      placeholder="Describe the current problem or inefficiency…"
+                    />
+                    <div className="absolute top-2 right-2">
+                      <MicButton
+                        value={watch('problem_statement') ?? ''}
+                        onChange={(v) => setValue('problem_statement', v, { shouldValidate: true })}
+                      />
+                    </div>
+                  </div>
                 </Field>
 
                 <Field label="Idea Description" required error={errors.description?.message}
                   hint="What is your proposed improvement or solution?">
-                  <textarea
-                    {...register('description')}
-                    rows={3}
-                    className={inputCls}
-                    placeholder="Describe your idea and how it addresses the problem…"
-                  />
+                  <div className="relative">
+                    <textarea
+                      {...register('description')}
+                      rows={3}
+                      className={`${inputCls} pr-10`}
+                      placeholder="Describe your idea and how it addresses the problem…"
+                    />
+                    <div className="absolute top-2 right-2">
+                      <MicButton
+                        value={watch('description') ?? ''}
+                        onChange={(v) => setValue('description', v, { shouldValidate: true })}
+                      />
+                    </div>
+                  </div>
                 </Field>
 
                 <Field label="Remarks" hint="Optional — any additional notes, context, or expected benefits">
-                  <textarea
-                    {...register('remarks')}
-                    rows={2}
-                    className={inputCls}
-                    placeholder="Additional context, cost savings, safety improvements…"
-                  />
+                  <div className="relative">
+                    <textarea
+                      {...register('remarks')}
+                      rows={2}
+                      className={`${inputCls} pr-10`}
+                      placeholder="Additional context, cost savings, safety improvements…"
+                    />
+                    <div className="absolute top-2 right-2">
+                      <MicButton
+                        value={watch('remarks') ?? ''}
+                        onChange={(v) => setValue('remarks', v)}
+                      />
+                    </div>
+                  </div>
                 </Field>
               </div>
 

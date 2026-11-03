@@ -9,6 +9,29 @@ import {
   type PublicEmployeeProfile,
   type PublicSubmitResult,
 } from '../../api/public.js'
+import { MicButton } from '../../components/MicButton.js'
+
+// ─── ACG Logo ─────────────────────────────────────────────────────────────────
+
+function AcgLogo({ height = 32 }: { height?: number }) {
+  const w = Math.round(height * 2.1)
+  return (
+    <svg width={w} height={height} viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ACG">
+      <rect width="84" height="40" rx="8" fill="#E8002A" />
+      <text
+        x="42" y="28"
+        textAnchor="middle"
+        fill="white"
+        fontSize="22"
+        fontWeight="800"
+        fontFamily="Arial, Helvetica, sans-serif"
+        letterSpacing="2"
+      >
+        ACG
+      </text>
+    </svg>
+  )
+}
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
@@ -17,7 +40,7 @@ function PageHeader() {
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white font-bold text-sm">K</div>
+        <AcgLogo height={34} />
         <div>
           <div className="font-semibold text-gray-900 text-sm leading-tight">Kaizen Digitalization Platform</div>
           <div className="text-xs text-gray-500">ACG — Submit Your Idea</div>
@@ -348,6 +371,11 @@ export function PublicIdeaSubmissionPage() {
                     placeholder="e.g. EMP001"
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   />
+                  <MicButton
+                    value={employeeIdInput}
+                    onChange={setEmployeeIdInput}
+                    variant="light"
+                  />
                   <button
                     type="button"
                     onClick={() => void handleLookup()}
@@ -478,23 +506,33 @@ export function PublicIdeaSubmissionPage() {
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label text="Problem Statement" required />
-                <TextArea
-                  value={problemStatement}
-                  onChange={setProblemStatement}
-                  placeholder="Describe the current problem or waste..."
-                  rows={5}
-                  required
-                />
+                <div className="relative">
+                  <TextArea
+                    value={problemStatement}
+                    onChange={setProblemStatement}
+                    placeholder="Describe the current problem or waste..."
+                    rows={5}
+                    required
+                  />
+                  <div className="absolute top-2 right-2">
+                    <MicButton value={problemStatement} onChange={setProblemStatement} variant="light" />
+                  </div>
+                </div>
               </div>
               <div>
                 <Label text="Idea Description" required />
-                <TextArea
-                  value={description}
-                  onChange={setDescription}
-                  placeholder="Describe your proposed improvement..."
-                  rows={5}
-                  required
-                />
+                <div className="relative">
+                  <TextArea
+                    value={description}
+                    onChange={setDescription}
+                    placeholder="Describe your proposed improvement..."
+                    rows={5}
+                    required
+                  />
+                  <div className="absolute top-2 right-2">
+                    <MicButton value={description} onChange={setDescription} variant="light" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -549,12 +587,17 @@ export function PublicIdeaSubmissionPage() {
             <div className="p-5 space-y-4">
               <div>
                 <Label text="Remarks" />
-                <TextArea
-                  value={remarks}
-                  onChange={setRemarks}
-                  placeholder="Any additional comments (optional)"
-                  rows={3}
-                />
+                <div className="relative">
+                  <TextArea
+                    value={remarks}
+                    onChange={setRemarks}
+                    placeholder="Any additional comments (optional)"
+                    rows={3}
+                  />
+                  <div className="absolute top-2 right-2">
+                    <MicButton value={remarks} onChange={setRemarks} variant="light" />
+                  </div>
+                </div>
               </div>
 
               <label className="flex items-center gap-3 cursor-pointer select-none">

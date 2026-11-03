@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -165,12 +165,24 @@ function FloatingInput({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const API_BASE = (import.meta.env['VITE_API_BASE_URL'] as string | undefined) ?? '/api/v1'
+
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const { addToast } = useToast()
   const [serverError, setServerError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+
+  // Show error message passed back from SSO callback failure
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ssoError = params.get('error')
+    if (ssoError) {
+      setServerError(decodeURIComponent(ssoError))
+      window.history.replaceState({}, '', '/login')
+    }
+  }, [])
 
   const {
     register,
@@ -383,7 +395,7 @@ export function LoginPage() {
             {/* SSO buttons */}
             <button
               type="button"
-              onClick={() => addToast('SSO login is coming soon. Use email & password for now.', 'info')}
+              onClick={() => { window.location.href = `${API_BASE}/auth/microsoft` }}
               className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/50 text-slate-300 rounded-xl py-2.5 text-sm font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
             >
               <MicrosoftLogo />

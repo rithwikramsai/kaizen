@@ -21,6 +21,15 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+
+  // Microsoft Azure AD SSO (optional — SSO disabled when absent)
+  MICROSOFT_CLIENT_ID: z.string().optional(),
+  MICROSOFT_CLIENT_SECRET: z.string().optional(),
+  MICROSOFT_TENANT_ID: z.string().optional(),
+  MICROSOFT_REDIRECT_URI: z.string().optional(),
+
+  FRONTEND_URL: z.string().default('http://localhost:5173'),
+  CORS_ORIGIN: z.string().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)
