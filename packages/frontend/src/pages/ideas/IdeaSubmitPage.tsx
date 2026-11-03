@@ -202,7 +202,7 @@ export function IdeaSubmitPage() {
     try {
       const res = await createIdea(values)
       addToast('Idea submitted successfully!', 'success')
-      navigate(`/ideas/${res.data.id}`)
+      navigate(`/ideas/${res.id}`)
     } catch (err) {
       addToast(err instanceof Error ? err.message : 'Submission failed', 'error')
     }

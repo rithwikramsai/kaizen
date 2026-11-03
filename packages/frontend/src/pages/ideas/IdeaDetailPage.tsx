@@ -48,7 +48,7 @@ export function IdeaDetailPage() {
     enabled: !!id,
   })
 
-  const idea = data?.data
+  const idea = data
   const hasWorkflow = !!idea?.workflow_instance_id
 
   const { data: wfStatus } = useQuery({
@@ -116,7 +116,7 @@ export function IdeaDetailPage() {
     )
   }
 
-  const ideaData = data.data
+  const ideaData = data
   const isOwner = user?.id === ideaData.submitted_by?.id
   const isDraft = ideaData.status === 'DRAFT'
   const sc = STATUS_CONFIG[ideaData.status] ?? STATUS_CONFIG['DRAFT']!

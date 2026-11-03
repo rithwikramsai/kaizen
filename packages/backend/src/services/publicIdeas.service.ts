@@ -83,9 +83,9 @@ export async function getPublicMasterData(): Promise<PublicMasterData> {
     pool.query<{ id: string; zone_id: string; name: string }>(
       `SELECT id, zone_id, name FROM departments WHERE is_active = TRUE ORDER BY name`),
     pool.query<{ id: string; department_id: string; name: string }>(
-      `SELECT id, department_id, name FROM functions WHERE is_active = TRUE ORDER BY name`),
+      `SELECT id, dept_id AS department_id, name FROM functions WHERE is_active = TRUE ORDER BY name`),
     pool.query<{ id: string; function_id: string; name: string }>(
-      `SELECT id, function_id, name FROM halls WHERE is_active = TRUE ORDER BY name`),
+      `SELECT id, func_id AS function_id, name FROM halls WHERE is_active = TRUE ORDER BY name`),
     pool.query<{ id: string; hall_id: string; name: string }>(
       `SELECT id, hall_id, name FROM locations WHERE is_active = TRUE ORDER BY name`),
     pool.query<{ id: string; name: string }>(

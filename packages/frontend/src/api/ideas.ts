@@ -81,30 +81,30 @@ export async function listIdeas(params?: IdeasListParams): Promise<PaginatedResp
   return authFetch<PaginatedResponse<IdeaListItem>>(`/ideas${buildQuery(params)}`)
 }
 
-export async function getIdea(id: string): Promise<{ success: true; data: IdeaDetail }> {
-  return authFetch<{ success: true; data: IdeaDetail }>(`/ideas/${id}`)
+export async function getIdea(id: string): Promise<IdeaDetail> {
+  return authFetch<IdeaDetail>(`/ideas/${id}`)
 }
 
-export async function createIdea(body: CreateIdeaRequest): Promise<{ success: true; data: CreateIdeaResult }> {
-  return authFetch<{ success: true; data: CreateIdeaResult }>('/ideas', {
+export async function createIdea(body: CreateIdeaRequest): Promise<CreateIdeaResult> {
+  return authFetch<CreateIdeaResult>('/ideas', {
     method: 'POST',
     body: JSON.stringify(body),
   })
 }
 
-export async function updateIdea(id: string, body: Partial<CreateIdeaRequest>): Promise<{ success: true; data: IdeaDetail }> {
-  return authFetch<{ success: true; data: IdeaDetail }>(`/ideas/${id}`, {
+export async function updateIdea(id: string, body: Partial<CreateIdeaRequest>): Promise<IdeaDetail> {
+  return authFetch<IdeaDetail>(`/ideas/${id}`, {
     method: 'PUT',
     body: JSON.stringify(body),
   })
 }
 
 export async function deleteIdea(id: string): Promise<void> {
-  await authFetch<{ success: true; data: null }>(`/ideas/${id}`, { method: 'DELETE' })
+  await authFetch<null>(`/ideas/${id}`, { method: 'DELETE' })
 }
 
-export async function getIdeaTimeline(id: string): Promise<{ success: true; data: TimelineEntry[] }> {
-  return authFetch<{ success: true; data: TimelineEntry[] }>(`/ideas/${id}/timeline`)
+export async function getIdeaTimeline(id: string): Promise<TimelineEntry[]> {
+  return authFetch<TimelineEntry[]>(`/ideas/${id}/timeline`)
 }
 
 export interface WorkflowStep {
@@ -125,8 +125,7 @@ export interface WorkflowStatus {
 }
 
 export async function getIdeaWorkflowStatus(id: string): Promise<WorkflowStatus> {
-  const res = await authFetch<{ success: true; data: WorkflowStatus }>(`/workflow/ideas/${id}/status`)
-  return res.data
+  return authFetch<WorkflowStatus>(`/workflow/ideas/${id}/status`)
 }
 
 export interface ReviewQueueItem {
@@ -139,12 +138,13 @@ export interface ReviewQueueItem {
   zone_name: string | null
   stage_code: string
   sla_due_at: string | null
+  action_taken_at: string | null
   workflow_instance_id: string
 }
 
-export async function getMyReviewQueue(): Promise<ReviewQueueItem[]> {
-  const res = await authFetch<{ success: true; data: ReviewQueueItem[] }>('/workflow/my-queue')
-  return res.data
+export async function getMyReviewQueue(status?: 'PENDING' | 'APPROVED' | 'RETURNED' | 'REJECTED'): Promise<ReviewQueueItem[]> {
+  const qs = status ? `?status=${status}` : ''
+  return authFetch<ReviewQueueItem[]>(`/workflow/my-queue${qs}`)
 }
 
 export async function submitIdeaWorkflowAction(

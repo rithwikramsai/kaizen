@@ -57,7 +57,7 @@ export function WorkflowTimeline({ ideaId }: Props) {
 
   if (isError) return <p className="text-xs text-red-400">Failed to load timeline.</p>
 
-  const entries: TimelineEntry[] = data?.data ?? []
+  const entries: TimelineEntry[] = Array.isArray(data) ? data : []
   if (entries.length === 0) return <p className="text-xs text-slate-500">No workflow steps yet.</p>
 
   return (

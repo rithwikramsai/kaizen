@@ -158,11 +158,15 @@ export async function getKaizenWorkflowStatus(req: Request, res: Response): Prom
   }
 }
 
-// GET /workflow/my-queue
+// GET /workflow/my-queue?status=PENDING|APPROVED|RETURNED|REJECTED
 export async function getMyQueue(req: Request, res: Response): Promise<void> {
   try {
     const actorId = req.user!.id
-    const result = await getMyReviewQueue(actorId)
+    const allowed = new Set(['PENDING', 'APPROVED', 'RETURNED', 'REJECTED'])
+    const status  = typeof req.query['status'] === 'string' && allowed.has(req.query['status'])
+      ? req.query['status']
+      : 'PENDING'
+    const result = await getMyReviewQueue(actorId, status)
     sendSuccess(res, result)
   } catch (err) {
     handleError(res, err)
