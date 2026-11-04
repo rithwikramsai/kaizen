@@ -87,6 +87,7 @@ export function KaizenOnePagerPage() {
   const { addToast } = useToast()
   const { user } = useAuth()
   const [isPreview, setIsPreview] = useState(true)
+  const [showSubmitPreview, setShowSubmitPreview] = useState(false)
   const [reviewComment, setReviewComment] = useState('')
   const [commentError, setCommentError] = useState(false)
 
@@ -104,7 +105,7 @@ export function KaizenOnePagerPage() {
   const { data: wfStatus } = useQuery({
     queryKey: ['kaizen-workflow-status', kaizenId],
     queryFn: () => getKaizenWorkflowStatus(kaizenId!),
-    enabled: !!kaizenId && (kaizen?.status === 'ONE_PAGER_SUBMITTED'),
+    enabled: !!kaizenId && !!kaizen && kaizen.status !== 'IN_PROGRESS' && kaizen.status !== 'PENDING',
     staleTime: 30_000,
   })
 
@@ -218,10 +219,15 @@ export function KaizenOnePagerPage() {
   }
 
   const onSubmit: SubmitHandler<OnePagerFormValues> = (data) => {
-    // Save first, then submit
+    // Save draft first, then show the preview modal (M15)
     saveMutation.mutate(data, {
-      onSuccess: () => submitMutation.mutate(),
+      onSuccess: () => setShowSubmitPreview(true),
     })
+  }
+
+  const onConfirmedSubmit = () => {
+    setShowSubmitPreview(false)
+    submitMutation.mutate()
   }
 
   const costVal = Number(watch('cost') ?? 0)
@@ -253,6 +259,18 @@ export function KaizenOnePagerPage() {
           </button>
         </div>
       </PageTransition>
+    )
+  }
+
+  // M15 — submit confirmation preview: show read-only before firing the actual submit
+  if (showSubmitPreview) {
+    return (
+      <OnePagerPreview
+        kaizen={kaizen}
+        values={getValues()}
+        onClose={() => setShowSubmitPreview(false)}
+        onConfirm={onConfirmedSubmit}
+      />
     )
   }
 
@@ -604,12 +622,14 @@ function OnePagerPreview({
   onClose,
   isReadOnly,
   onViewIdea,
+  onConfirm,
 }: {
   kaizen: NonNullable<ReturnType<typeof getKaizen> extends Promise<infer T> ? T : never>
   values: OnePagerFormValues
   onClose: () => void
   isReadOnly?: boolean
   onViewIdea?: () => void
+  onConfirm?: () => void    // M15 — present when used as submit-confirmation preview
 }) {
   const ratio =
     values.cost && values.benefit && values.cost > 0
@@ -620,15 +640,34 @@ function OnePagerPreview({
     <PageTransition>
       <div className="max-w-4xl">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold text-white">One Pager</h1>
-          {!isReadOnly && (
-            <button
-              onClick={onClose}
-              className="px-4 py-2 glass hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-sm font-medium rounded-xl transition-all"
-            >
-              ✎ Edit
-            </button>
-          )}
+          <h1 className="text-xl font-bold text-white">
+            {onConfirm ? 'Review Before Submitting' : 'One Pager'}
+          </h1>
+          <div className="flex gap-2">
+            {onConfirm ? (
+              <>
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 glass hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-sm font-medium rounded-xl transition-all"
+                >
+                  ← Back to Edit
+                </button>
+                <button
+                  onClick={onConfirm}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  Confirm & Submit
+                </button>
+              </>
+            ) : (!isReadOnly && (
+              <button
+                onClick={onClose}
+                className="px-4 py-2 glass hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-sm font-medium rounded-xl transition-all"
+              >
+                ✎ Edit
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="glass rounded-2xl p-8 space-y-6 border border-indigo-500/15">

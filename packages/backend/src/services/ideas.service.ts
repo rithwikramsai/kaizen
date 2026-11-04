@@ -4,6 +4,7 @@ import { ErrorCodes } from '../utils/response.js'
 import { parsePagination, buildMeta } from '../utils/pagination.js'
 import { generateRegistrationId } from '../utils/id-generator.js'
 import { initiateWorkflowWithClient } from './workflow.service.js'
+import { sendEmailForEvent } from './email/email.service.js'
 import type { Permission } from '@kiet/shared'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -241,6 +242,13 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
     )
 
     await client.query('COMMIT')
+
+    // M5 — confirmation email to idea owner after successful submission
+    void sendEmailForEvent('IDEA_SUBMITTED', params.submittedBy, {
+      entityType: 'idea',
+      entityId: idea.id,
+      registrationId: registrationId,
+    })
 
     return {
       id: idea.id,
