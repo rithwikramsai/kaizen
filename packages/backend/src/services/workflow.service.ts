@@ -68,7 +68,7 @@ export async function initiateWorkflowWithClient(
       workflowInstanceId: instance.id,
       stepOrder: tStep.step_order,
       stageCode: tStep.stage_code,
-      assignedUserId: assignedUserId ?? '',
+      assignedUserId: assignedUserId ?? null,
       isDynamic: false,
       slaHours: tStep.sla_hours,
       plantId: params.plantId,
@@ -288,7 +288,7 @@ export async function processWorkflowAction(params: {
             workflowInstanceId: instance.id,
             stepOrder: maxOrder,
             stageCode: 'SCI_TECH_UPLOAD',
-            assignedUserId: hodUserId ?? '',
+            assignedUserId: hodUserId ?? null,
             isDynamic: true,
             slaHours: 120,
             plantId,
@@ -416,6 +416,8 @@ export async function processWorkflowAction(params: {
           `UPDATE workflow_instances SET current_status = 'RETURNED', updated_at = NOW() WHERE id = $1`,
           [instance.id],
         )
+        // Sync entity status so the owner can edit and resubmit (C3/C4)
+        await syncEntityStatus(client, instance.entity_type, instance.entity_id, 'RETURNED')
         // Notify submitter
         await engine.createNotification({
           recipientId: instance.initiated_by,
@@ -612,7 +614,7 @@ async function syncEntityStatus(
   client: pg.PoolClient,
   entityType: 'idea' | 'kaizen',
   entityId: string,
-  outcome: 'APPROVED' | 'REJECTED',
+  outcome: 'APPROVED' | 'REJECTED' | 'RETURNED',
 ): Promise<void> {
   if (entityType === 'idea') {
     await client.query(
@@ -695,4 +697,101 @@ export async function getMyReviewQueue(actorId: string, status = 'PENDING'): Pro
     action_taken_at: row.action_taken_at ? row.action_taken_at.toISOString() : null,
     workflow_instance_id: row.workflow_instance_id,
   }))
+}
+
+// ─── Resubmit (after RETURN to submitter) ────────────────────────────────────
+
+export async function resubmitWorkflow(
+  entityType: 'idea' | 'kaizen',
+  entityId: string,
+  actorId: string,
+): Promise<{ stage_code: string; assigned_to: { id: string; full_name: string } | null }> {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const engine = new WorkflowEngine(client)
+
+    // Find the workflow instance that was returned to the submitter
+    const instRes = await client.query<WorkflowInstanceRow>(
+      `SELECT * FROM workflow_instances
+       WHERE entity_type = $1 AND entity_id = $2 AND current_status = 'RETURNED'
+       LIMIT 1`,
+      [entityType, entityId],
+    )
+    const instance = instRes.rows[0]
+    if (!instance) {
+      throw new ServiceError(422, ErrorCodes.WORKFLOW_ERROR, 'No returned workflow found — nothing to resubmit')
+    }
+
+    if (instance.initiated_by !== actorId) {
+      throw new ServiceError(403, ErrorCodes.FORBIDDEN, 'Only the original submitter can resubmit')
+    }
+
+    // The returned step is the one the reviewer explicitly returned (status = 'RETURNED')
+    const stepRes = await client.query<WorkflowStepRow>(
+      `SELECT * FROM workflow_steps
+       WHERE workflow_instance_id = $1 AND status = 'RETURNED'
+       ORDER BY step_order ASC LIMIT 1`,
+      [instance.id],
+    )
+    const returnedStep = stepRes.rows[0]
+    if (!returnedStep) {
+      throw new ServiceError(422, ErrorCodes.WORKFLOW_ERROR, 'No returned step found to resubmit to')
+    }
+
+    // Reactivate that step
+    await client.query(
+      `UPDATE workflow_steps SET status = 'PENDING', action_taken_at = NULL, comment = NULL WHERE id = $1`,
+      [returnedStep.id],
+    )
+    const plantId = await resolveInstancePlantId(client, instance.id)
+    await engine.activateStep(returnedStep.id, plantId, instance.workflow_type, returnedStep.stage_code, null)
+
+    // Advance workflow instance back to in-progress
+    await client.query(
+      `UPDATE workflow_instances SET current_stage = $1, current_status = 'IN_PROGRESS', updated_at = NOW() WHERE id = $2`,
+      [returnedStep.stage_code, instance.id],
+    )
+
+    // Reset entity status to its pre-return submitted state
+    if (entityType === 'idea') {
+      await client.query(`UPDATE ideas SET status = 'SUBMITTED', updated_at = NOW() WHERE id = $1`, [entityId])
+    } else {
+      await client.query(`UPDATE kaizens SET status = 'ONE_PAGER_SUBMITTED', updated_at = NOW() WHERE id = $1`, [entityId])
+    }
+
+    // Resolve and notify the reviewer
+    let assignee: { id: string; full_name: string } | null = null
+    if (returnedStep.assigned_user_id) {
+      const uRes = await client.query<{ id: string; full_name: string }>(
+        `SELECT id, full_name FROM users WHERE id = $1`,
+        [returnedStep.assigned_user_id],
+      )
+      assignee = uRes.rows[0] ?? null
+      await engine.createNotification({
+        recipientId: returnedStep.assigned_user_id,
+        type: 'STEP_RETURNED',
+        title: 'A submission has been revised and resubmitted',
+        body: 'The submitter has made revisions. Please review again.',
+        entityType,
+        entityId,
+      })
+    }
+
+    await engine.createAuditLog({
+      performedBy: actorId,
+      action: 'IDEA_SUBMITTED',
+      entityType,
+      entityId,
+      payload: { stage: returnedStep.stage_code, resubmit: true },
+    })
+
+    await client.query('COMMIT')
+    return { stage_code: returnedStep.stage_code, assigned_to: assignee }
+  } catch (err) {
+    await client.query('ROLLBACK')
+    throw err
+  } finally {
+    client.release()
+  }
 }

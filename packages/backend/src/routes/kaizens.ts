@@ -22,3 +22,6 @@ kaizensRouter.post('/:kaizenId/submit', authenticate, requirePermission('CAN_SUB
 
 // Assign implementation owner (Plant OPEX override)
 kaizensRouter.patch('/:kaizenId/assign-owner', authenticate, requirePermission('CAN_ASSIGN_IMPL_OWNER'), ctrl.assignOwner)
+
+// Resubmit returned One Pager back to the reviewer
+kaizensRouter.post('/:kaizenId/resubmit', authenticate, requirePermission('CAN_SUBMIT_ONE_PAGER'), ctrl.resubmitKaizen)
