@@ -157,8 +157,8 @@ export async function processWorkflowAction(params: {
   }>
   sciTechFlag?: boolean
 }): Promise<WorkflowActionResult> {
-  if ((params.action === 'RETURN' || params.action === 'REJECT') && !params.comment?.trim()) {
-    throw new ServiceError(400, ErrorCodes.VALIDATION_ERROR, 'Comment is required for RETURN and REJECT actions')
+  if (!params.comment?.trim()) {
+    throw new ServiceError(400, ErrorCodes.VALIDATION_ERROR, 'A comment is required for all workflow actions')
   }
 
   const client = await pool.connect()
@@ -200,6 +200,23 @@ export async function processWorkflowAction(params: {
     let nextStage = previousStage
     let nextStatus = 'PENDING'
     let nextAssignee: { id: string; full_name: string } | null = null
+
+    // HOD must explicitly answer all three flags before approving (H5 — BRD 5.2)
+    if (params.action === 'APPROVE' && currentStep.stage_code === 'HOD_REVIEW') {
+      const f = params.flags
+      if (
+        f == null ||
+        typeof f.safety_review_required !== 'boolean' ||
+        typeof f.qms_review_required !== 'boolean' ||
+        typeof f.machine_design_change !== 'boolean'
+      ) {
+        throw new ServiceError(
+          400,
+          ErrorCodes.VALIDATION_ERROR,
+          'All three HOD review flags (Safety Review, QMS Review, Machine Design Change) must be explicitly answered before approving',
+        )
+      }
+    }
 
     // ── APPROVE ──────────────────────────────────────────────────────────────
     if (params.action === 'APPROVE') {
