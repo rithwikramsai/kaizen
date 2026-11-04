@@ -282,23 +282,12 @@ export async function listIdeas(
     conditions.push(`i.plant_id = $${paramIdx++}`)
     values.push(actorPlantId)
   } else if (permissions.includes('CAN_VIEW_ZONE_IDEAS')) {
-    // Get actor's zone_id from their user record
-    const userZoneRes = await pool.query<{ zone_id: string }>(
-      `SELECT ur.plant_id, z.id as zone_id
-       FROM user_roles ur
-       JOIN zones z ON z.plant_id = ur.plant_id
-       WHERE ur.user_id = $1
-       LIMIT 1`,
-      [actorId],
+    // Scope to the specific zone_id stored on the user's role assignment (H2 + L7).
+    // Uses a subquery so no separate pre-query round-trip is needed.
+    conditions.push(
+      `i.zone_id = (SELECT zone_id FROM user_roles WHERE user_id = $${paramIdx++} AND zone_id IS NOT NULL ORDER BY granted_at ASC LIMIT 1)`,
     )
-    const zoneId = userZoneRes.rows[0]?.zone_id
-    if (zoneId) {
-      conditions.push(`i.zone_id = $${paramIdx++}`)
-      values.push(zoneId)
-    } else {
-      conditions.push(`i.submitted_by = $${paramIdx++}`)
-      values.push(actorId)
-    }
+    values.push(actorId)
   } else {
     conditions.push(`i.submitted_by = $${paramIdx++}`)
     values.push(actorId)
