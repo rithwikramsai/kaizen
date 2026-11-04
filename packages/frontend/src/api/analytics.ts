@@ -1,4 +1,4 @@
-import { authFetch } from './client.js'
+import { authFetch, API_BASE, TOKEN_KEY } from './client.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,8 +73,8 @@ export function getSLAReport(): Promise<SLAReport> {
 export type ExportDataset = 'ideas' | 'kaizens' | 'rewards' | 'leaderboard'
 
 export async function downloadExport(format: 'csv' | 'xlsx', dataset: ExportDataset): Promise<void> {
-  const token = localStorage.getItem('token')
-  const res = await fetch(`/api/analytics/export/${format}?dataset=${dataset}`, {
+  const token = localStorage.getItem(TOKEN_KEY)
+  const res = await fetch(`${API_BASE}/analytics/export/${format}?dataset=${dataset}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   if (!res.ok) throw new Error(`Export failed: ${res.status}`)
