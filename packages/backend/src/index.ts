@@ -1,6 +1,7 @@
 import { env } from './config/env.js'
 import { createApp } from './app.js'
 import { checkDatabaseConnection } from './config/database.js'
+import { startSlaScheduler } from './scheduler/sla.js'
 
 async function start(): Promise<void> {
   await checkDatabaseConnection()
@@ -9,6 +10,7 @@ async function start(): Promise<void> {
   app.listen(env.PORT, () => {
     console.info(`KIET API running on http://localhost:${env.PORT}`)
     console.info(`Environment: ${env.NODE_ENV}`)
+    startSlaScheduler()
   })
 }
 

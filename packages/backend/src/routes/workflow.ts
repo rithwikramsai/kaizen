@@ -42,7 +42,12 @@ workflowRouter.get(
 
 // Kaizen workflow
 workflowRouter.post('/kaizens/:kaizenId/initiate', requirePermission('CAN_REVIEW_IMPLEMENTATION'), initiateKaizenWorkflow)
-workflowRouter.post('/kaizens/:kaizenId/action', requirePermission('CAN_REVIEW_IMPLEMENTATION'), processKaizenAction)
+// Action: also allows CAN_UPLOAD_SCI_TECH so HOD can complete the SCI_TECH_UPLOAD step (M1/L6)
+workflowRouter.post(
+  '/kaizens/:kaizenId/action',
+  requireAnyPermission('CAN_REVIEW_IMPLEMENTATION', 'CAN_UPLOAD_SCI_TECH'),
+  processKaizenAction,
+)
 // Status: accessible to anyone who can view or act on kaizens (C2 — same pattern)
 workflowRouter.get(
   '/kaizens/:kaizenId/status',

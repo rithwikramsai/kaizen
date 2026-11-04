@@ -40,7 +40,8 @@ INSERT INTO users (id, employee_id, email, full_name, phone, password_hash, is_a
   ('a0000000-0000-0000-0000-000000000004', 'EMP004', 'hod@acg.com',          'Vikram Nair',      '9000000004', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW()),
   ('a0000000-0000-0000-0000-000000000005', 'EMP005', 'opex@acg.com',         'Anita Desai',      '9000000005', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW()),
   ('a0000000-0000-0000-0000-000000000006', 'EMP006', 'safety@acg.com',       'Suresh Pillai',    '9000000006', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW()),
-  ('a0000000-0000-0000-0000-000000000007', 'EMP007', 'quality@acg.com',      'Meena Krishnan',   '9000000007', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW())
+  ('a0000000-0000-0000-0000-000000000007', 'EMP007', 'quality@acg.com',      'Meena Krishnan',   '9000000007', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW()),
+  ('a0000000-0000-0000-0000-000000000008', 'EMP008', 'centralopex@acg.com',  'Central OPEX User','9000000008', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW())
 ON CONFLICT (email) DO NOTHING;
 
 -- ─── User → Role assignments ──────────────────────────────────────────────────
@@ -60,7 +61,9 @@ INSERT INTO user_roles (user_id, role_id, plant_id, zone_id, department_id, gran
   -- Plant Safety (plant-wide role)
   ('a0000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000001', NULL, NULL, NOW(), 'a0000000-0000-0000-0000-000000000001'),
   -- Plant Quality (plant-wide role)
-  ('a0000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000001', NULL, NULL, NOW(), 'a0000000-0000-0000-0000-000000000001')
+  ('a0000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000001', NULL, NULL, NOW(), 'a0000000-0000-0000-0000-000000000001'),
+  -- Central OPEX (no specific plant — cross-plant visibility via CAN_VIEW_ALL_IDEAS)
+  ('a0000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000011', '10000000-0000-0000-0000-000000000001', NULL, NULL, NOW(), 'a0000000-0000-0000-0000-000000000001')
 ON CONFLICT (user_id, role_id, plant_id) DO UPDATE
   SET zone_id = EXCLUDED.zone_id,
       department_id = EXCLUDED.department_id;
