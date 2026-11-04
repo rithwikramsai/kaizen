@@ -1,4 +1,4 @@
-import { authFetch } from './client.js'
+import { authFetch, authFetchPaginated } from './client.js'
 import type { IdeaListItem, CreateIdeaRequest } from '@kiet/shared'
 
 export interface IdeaDetail {
@@ -78,14 +78,8 @@ function buildQuery(params?: IdeasListParams): string {
 }
 
 export async function listIdeas(params?: IdeasListParams): Promise<PaginatedResponse<IdeaListItem>> {
-  const token = localStorage.getItem('kiet_access_token')
-  const res = await fetch(
-    `${(import.meta.env['VITE_API_BASE_URL'] as string | undefined) ?? '/api/v1'}/ideas${buildQuery(params)}`,
-    { headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } },
-  )
-  const body = (await res.json()) as { success: boolean; data: IdeaListItem[]; meta: PaginatedResponse<IdeaListItem>['meta']; error?: { message: string } }
-  if (!res.ok) throw new Error(body.error?.message ?? 'Failed to load ideas')
-  return { success: true, data: body.data ?? [], meta: body.meta ?? { page: 1, page_size: 12, total: 0 } }
+  const { data, meta } = await authFetchPaginated<IdeaListItem>(`/ideas${buildQuery(params)}`)
+  return { success: true, data, meta }
 }
 
 export async function getIdea(id: string): Promise<IdeaDetail> {
@@ -99,7 +93,19 @@ export async function createIdea(body: CreateIdeaRequest): Promise<CreateIdeaRes
   })
 }
 
-export async function updateIdea(id: string, body: Partial<CreateIdeaRequest>): Promise<IdeaDetail> {
+export interface UpdateIdeaRequest {
+  title?: string
+  description?: string
+  problem_statement?: string
+  proposed_solution?: string
+  expected_benefits?: string
+  remarks?: string
+  is_anonymous?: boolean
+  category_id?: string
+  sub_category_id?: string
+}
+
+export async function updateIdea(id: string, body: UpdateIdeaRequest): Promise<IdeaDetail> {
   return authFetch<IdeaDetail>(`/ideas/${id}`, {
     method: 'PUT',
     body: JSON.stringify(body),
