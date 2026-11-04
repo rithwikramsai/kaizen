@@ -107,7 +107,7 @@ export class WorkflowEngine {
         workflowInstanceId,
         stepOrder: spec.step_order,
         stageCode: spec.stage_code,
-        assignedUserId: assignedUserId ?? '',
+        assignedUserId: assignedUserId ?? null,
         isDynamic: true,
         slaHours: spec.sla_hours,
         plantId,
@@ -122,7 +122,7 @@ export class WorkflowEngine {
     workflowInstanceId: string
     stepOrder: number
     stageCode: string
-    assignedUserId: string
+    assignedUserId: string | null
     isDynamic: boolean
     slaHours: number | null
     plantId: string

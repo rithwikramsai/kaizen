@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import { sendSuccess } from '../utils/response.js'
 import * as kaizensService from '../services/kaizens.service.js'
+import { resubmitWorkflow } from '../services/workflow.service.js'
 
 export async function listApprovedQueue(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -52,6 +53,15 @@ export async function assignOwner(req: Request, res: Response, next: NextFunctio
     const { owner_id } = req.body as { owner_id: string }
     await kaizensService.assignImplementationOwner(req.params['kaizenId']!, owner_id, req.user!.id)
     sendSuccess(res, null)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function resubmitKaizen(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await resubmitWorkflow('kaizen', req.params['kaizenId']!, req.user!.id)
+    sendSuccess(res, result)
   } catch (err) {
     next(err)
   }

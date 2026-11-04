@@ -55,6 +55,7 @@ export interface CreateIdeaParams {
   attachment_file_ids?: string[]
   is_anonymous?: boolean
   submittedBy: string
+  isDraft?: boolean
 }
 
 interface UpdateIdeaParams {
@@ -72,10 +73,10 @@ interface UpdateIdeaParams {
 
 export async function createIdea(params: CreateIdeaParams): Promise<{
   id: string
-  registration_id: string
+  registration_id: string | null
   status: string
-  workflow_instance_id: string
-  current_stage: string
+  workflow_instance_id: string | null
+  current_stage: string | null
   assigned_to: { id: string; full_name: string } | null
 }> {
   const client = await pool.connect()
@@ -100,23 +101,75 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
       throw new ServiceError(400, ErrorCodes.VALIDATION_ERROR, 'Department does not belong to the specified zone')
     }
 
-    // Get plant code for registration ID generation
-    const plantRes = await client.query<{ code: string }>(
-      `SELECT code FROM plants WHERE id = $1`,
-      [params.plant_id],
-    )
-    const plantCode = plantRes.rows[0]?.code ?? ''
-
-    const registrationId = await generateRegistrationId(plantCode)
-
     // Title: use explicitly provided title, or auto-generate from first 100 chars of problem_statement
     const title = (params.title && params.title.trim())
       ? params.title.trim()
       : params.problem_statement.slice(0, 100).trim()
 
-    // Insert idea
     // Normalize empty strings to null for optional UUID/text columns
     const orNull = (v: string | undefined) => (v && v.trim() !== '' ? v : null)
+
+    // ── DRAFT path (M18) — save without registration ID or workflow ───────────
+    if (params.isDraft) {
+      const ideaRes = await client.query<IdeaRow>(
+        `INSERT INTO ideas
+           (registration_id, submitted_by, plant_id, zone_id, department_id, function_id, hall_id, location_id,
+            value_stream, category_id, sub_category_id, title, description, problem_statement,
+            proposed_solution, expected_benefits, remarks,
+            is_anonymous, status, submitted_at, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'DRAFT',NULL,NOW(),NOW())
+         RETURNING *`,
+        [
+          null,
+          params.submittedBy,
+          params.plant_id,
+          params.zone_id,
+          params.department_id,
+          orNull(params.function_id),
+          orNull(params.hall_id),
+          orNull(params.location_id),
+          orNull(params.value_stream),
+          params.category_id,
+          orNull(params.sub_category_id),
+          title,
+          params.description,
+          params.problem_statement,
+          orNull(params.proposed_solution),
+          orNull(params.expected_benefits),
+          orNull(params.remarks),
+          params.is_anonymous ?? false,
+        ],
+      )
+      const draft = ideaRes.rows[0]!
+
+      if (params.tag_ids?.length) {
+        for (const tagId of params.tag_ids) {
+          await client.query(
+            `INSERT INTO idea_tags (idea_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [draft.id, tagId],
+          )
+        }
+      }
+      if (params.attachment_file_ids?.length) {
+        for (const fileId of params.attachment_file_ids) {
+          await client.query(
+            `INSERT INTO idea_attachments (idea_id, file_id, attachment_type) VALUES ($1, $2, 'SUPPORTING_DOC')`,
+            [draft.id, fileId],
+          )
+        }
+      }
+
+      await client.query('COMMIT')
+      return { id: draft.id, registration_id: null, status: 'DRAFT', workflow_instance_id: null, current_stage: null, assigned_to: null }
+    }
+
+    // ── SUBMIT path — full registration ID + workflow initiation ─────────────
+    const plantRes = await client.query<{ code: string }>(
+      `SELECT code FROM plants WHERE id = $1`,
+      [params.plant_id],
+    )
+    const plantCode = plantRes.rows[0]?.code ?? ''
+    const registrationId = await generateRegistrationId(plantCode)
 
     const ideaRes = await client.query<IdeaRow>(
       `INSERT INTO ideas
@@ -448,7 +501,7 @@ export async function updateIdea(id: string, actorId: string, body: UpdateIdeaPa
   const idea = existing.rows[0]
   if (!idea) throw new ServiceError(404, ErrorCodes.NOT_FOUND, 'Idea not found')
   if (idea.submitted_by !== actorId) throw new ServiceError(403, ErrorCodes.FORBIDDEN, 'You can only edit your own ideas')
-  if (idea.status !== 'DRAFT') throw new ServiceError(409, ErrorCodes.CONFLICT, 'Only DRAFT ideas can be edited')
+  if (!['DRAFT', 'RETURNED'].includes(idea.status)) throw new ServiceError(409, ErrorCodes.CONFLICT, 'Only DRAFT or RETURNED ideas can be edited')
 
   const res = await pool.query<IdeaRow>(
     `UPDATE ideas SET
@@ -488,7 +541,7 @@ export async function deleteIdea(id: string, actorId: string): Promise<void> {
   const idea = existing.rows[0]
   if (!idea) throw new ServiceError(404, ErrorCodes.NOT_FOUND, 'Idea not found')
   if (idea.submitted_by !== actorId) throw new ServiceError(403, ErrorCodes.FORBIDDEN, 'You can only delete your own ideas')
-  if (idea.status !== 'DRAFT') throw new ServiceError(409, ErrorCodes.CONFLICT, 'Only DRAFT ideas can be deleted')
+  if (!['DRAFT', 'RETURNED'].includes(idea.status)) throw new ServiceError(409, ErrorCodes.CONFLICT, 'Only DRAFT or RETURNED ideas can be deleted')
 
   await pool.query(`DELETE FROM ideas WHERE id = $1`, [id])
 }

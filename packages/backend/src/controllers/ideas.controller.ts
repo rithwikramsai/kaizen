@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import { sendSuccess } from '../utils/response.js'
 import * as ideasService from '../services/ideas.service.js'
+import { resubmitWorkflow } from '../services/workflow.service.js'
 
 export async function createIdea(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -67,6 +68,15 @@ export async function getTimeline(req: Request, res: Response, next: NextFunctio
       req.user!.plant_id,
       req.user!.permissions,
     )
+    sendSuccess(res, result)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function resubmitIdea(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await resubmitWorkflow('idea', req.params['id']!, req.user!.id)
     sendSuccess(res, result)
   } catch (err) {
     next(err)

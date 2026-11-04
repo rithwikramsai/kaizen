@@ -11,3 +11,4 @@ ideasRouter.get('/:id', authenticate, requirePermission('CAN_VIEW_OWN_IDEAS'), c
 ideasRouter.put('/:id', authenticate, requirePermission('CAN_SUBMIT_IDEA'), ctrl.updateIdea)
 ideasRouter.delete('/:id', authenticate, requirePermission('CAN_SUBMIT_IDEA'), ctrl.deleteIdea)
 ideasRouter.get('/:id/timeline', authenticate, requirePermission('CAN_VIEW_OWN_IDEAS'), ctrl.getTimeline)
+ideasRouter.post('/:id/resubmit', authenticate, requirePermission('CAN_SUBMIT_IDEA'), ctrl.resubmitIdea)

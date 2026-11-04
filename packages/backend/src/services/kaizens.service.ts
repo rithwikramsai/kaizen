@@ -366,8 +366,8 @@ export async function saveKaizenDraft(
     )
     const k = check.rows[0]
     if (!k) throw new ServiceError(404, ErrorCodes.NOT_FOUND, 'Kaizen not found')
-    if (!['IN_PROGRESS', 'PENDING'].includes(k.status)) {
-      throw new ServiceError(409, ErrorCodes.CONFLICT, 'One Pager has already been submitted')
+    if (!['IN_PROGRESS', 'PENDING', 'RETURNED'].includes(k.status)) {
+      throw new ServiceError(409, ErrorCodes.CONFLICT, 'One Pager cannot be edited in its current state')
     }
 
     // Enforce plant-level isolation
@@ -508,7 +508,7 @@ export async function submitOnePager(
     const kaizen = res.rows[0]
     if (!kaizen) throw new ServiceError(404, ErrorCodes.NOT_FOUND, 'Kaizen not found')
 
-    if (!['IN_PROGRESS', 'PENDING'].includes(kaizen.status)) {
+    if (!['IN_PROGRESS', 'PENDING', 'RETURNED'].includes(kaizen.status)) {
       throw new ServiceError(409, ErrorCodes.CONFLICT, 'One Pager has already been submitted or is not editable')
     }
 
