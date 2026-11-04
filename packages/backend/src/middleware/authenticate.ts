@@ -25,7 +25,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     req.user = {
       id: payload.sub,
       email: payload.email,
-      full_name: '',
+      full_name: payload.full_name ?? '',
       plant_id: payload.plant_id,
       permissions: payload.permissions,
     }

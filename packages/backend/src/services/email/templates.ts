@@ -7,6 +7,7 @@ export type EmailEvent =
   | 'ONE_PAGER_SUBMITTED'
   | 'REWARD_ASSIGNED'
   | 'HIGH_IMPACT_NOMINATED'
+  | 'PASSWORD_RESET'
 
 export interface TemplateContext {
   recipientName?: string | undefined
@@ -170,6 +171,24 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           ctx.kaizenTitle ? `Title: ${ctx.kaizenTitle}` : '',
           '',
           `Please log in to the ${APP_NAME} to submit your rating.`,
+          '',
+          `Regards,`,
+          APP_NAME,
+        ]),
+      }
+
+    case 'PASSWORD_RESET':
+      return {
+        subject: `Reset Your ${APP_NAME} Password`,
+        body: lines([
+          `Dear ${name},`,
+          '',
+          `We received a request to reset your password. Click the link below to set a new password.`,
+          `This link is valid for 1 hour.`,
+          '',
+          ctx.entityId ? `Reset link: ${ctx.entityId}` : '',
+          '',
+          `If you did not request a password reset, please ignore this email — your account remains secure.`,
           '',
           `Regards,`,
           APP_NAME,
