@@ -86,6 +86,7 @@ export function IdeaDetailPage() {
       void queryClient.invalidateQueries({ queryKey: ['idea-workflow-status', id] })
       void queryClient.invalidateQueries({ queryKey: ['idea-timeline', id] })
       void queryClient.invalidateQueries({ queryKey: ['my-ideas'] })
+      void queryClient.invalidateQueries({ queryKey: ['all-ideas'] })
       void queryClient.invalidateQueries({ queryKey: ['my-review-queue'] })
       setActionComment('')
       addToast('Action submitted successfully', 'success')
