@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/authenticate.js'
-import { requirePermission } from '../middleware/requirePermission.js'
+import { requirePermission, requireAnyPermission } from '../middleware/requirePermission.js'
 import {
   getQueue,
   assignReward,
@@ -27,8 +27,8 @@ rewardsRouter.post('/assign/:kaizenId', requirePermission('CAN_ASSIGN_REWARD'), 
 // Nominate for high impact
 rewardsRouter.post('/nominate-high-impact/:kaizenId', requirePermission('CAN_NOMINATE_HIGH_IMPACT'), nominateForHighImpact)
 
-// Nomination detail (accessible to both raters and nominators)
-rewardsRouter.get('/nominations/:nominationId', requirePermission('CAN_NOMINATE_HIGH_IMPACT'), getNomination)
+// Nomination detail — raters need to open this page before they can rate (H4)
+rewardsRouter.get('/nominations/:nominationId', requireAnyPermission('CAN_NOMINATE_HIGH_IMPACT', 'CAN_RATE_HIGH_IMPACT'), getNomination)
 
 // SC member rates a nomination
 rewardsRouter.post('/nominations/:nominationId/rate', requirePermission('CAN_RATE_HIGH_IMPACT'), submitRating)

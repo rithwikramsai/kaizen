@@ -39,8 +39,11 @@ export function IdeaDetailPage() {
   const { addToast } = useToast()
 
   const [actionComment, setActionComment] = useState('')
-  const [commentError, setCommentError] = useState(false)
-  const [flags, setFlags] = useState({ safety_review_required: false, qms_review_required: false, machine_design_change: false })
+  const [flags, setFlags] = useState<{
+    safety_review_required: boolean | null
+    qms_review_required: boolean | null
+    machine_design_change: boolean | null
+  }>({ safety_review_required: null, qms_review_required: null, machine_design_change: null })
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['idea', id],
@@ -62,13 +65,21 @@ export function IdeaDetailPage() {
     (s) => s.assigned_to.id === user?.id && s.status === 'PENDING',
   )
   const isHodStep = myPendingStep?.stage_code === 'HOD_REVIEW'
+  // Approve must stay disabled until the HOD has explicitly answered all three flags (BRD 5.2)
+  const hodFlagsAnswered = !isHodStep || Object.values(flags).every((v) => v !== null)
 
   const actionMutation = useMutation({
     mutationFn: (payload: { action: 'APPROVE' | 'RETURN' | 'REJECT' }) =>
       submitIdeaWorkflowAction(id!, {
         ...payload,
         comment: actionComment.trim() || undefined,
-        flags: isHodStep ? flags : undefined,
+        flags: isHodStep
+          ? {
+              safety_review_required: flags.safety_review_required ?? false,
+              qms_review_required: flags.qms_review_required ?? false,
+              machine_design_change: flags.machine_design_change ?? false,
+            }
+          : undefined,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['idea', id] })
@@ -77,7 +88,6 @@ export function IdeaDetailPage() {
       void queryClient.invalidateQueries({ queryKey: ['my-ideas'] })
       void queryClient.invalidateQueries({ queryKey: ['my-review-queue'] })
       setActionComment('')
-      setCommentError(false)
       addToast('Action submitted successfully', 'success')
     },
     onError: (err: Error) => addToast(err.message, 'error'),
@@ -278,67 +288,81 @@ export function IdeaDetailPage() {
                   Your Review — {myPendingStep.stage_code.replace(/_/g, ' ')}
                 </p>
 
-                {/* HOD flags */}
+                {/* HOD flags — all three must be answered before Approve is enabled (BRD 5.2) */}
                 {isHodStep && (
-                  <div className="mb-4 space-y-2">
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2">Set Flags</p>
+                  <div className="mb-4 space-y-3">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
+                      Review Flags <span className="text-red-400">*</span>
+                    </p>
                     {[
                       { key: 'safety_review_required', label: 'Safety Review Required' },
                       { key: 'qms_review_required',    label: 'QMS Review Required' },
                       { key: 'machine_design_change',  label: 'Machine Design Change' },
-                    ].map(({ key, label }) => (
-                      <label key={key} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={flags[key as keyof typeof flags]}
-                          onChange={(e) => setFlags((f) => ({ ...f, [key]: e.target.checked }))}
-                          className="w-4 h-4 rounded accent-indigo-500"
-                        />
-                        <span className="text-sm text-slate-300">{label}</span>
-                      </label>
-                    ))}
+                    ].map(({ key, label }) => {
+                      const val = flags[key as keyof typeof flags]
+                      return (
+                        <div key={key}>
+                          <p className="text-xs text-slate-400 mb-1">{label}</p>
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={key}
+                                checked={val === true}
+                                onChange={() => setFlags((f) => ({ ...f, [key]: true }))}
+                                className="accent-indigo-500"
+                              />
+                              <span className="text-sm text-slate-300">Yes</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={key}
+                                checked={val === false}
+                                onChange={() => setFlags((f) => ({ ...f, [key]: false }))}
+                                className="accent-indigo-500"
+                              />
+                              <span className="text-sm text-slate-300">No</span>
+                            </label>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {!hodFlagsAnswered && (
+                      <p className="text-[11px] text-amber-400">Answer all three flags to enable Approve.</p>
+                    )}
                   </div>
                 )}
 
-                {/* Comment */}
+                {/* Comment — mandatory for all actions; buttons stay disabled until filled */}
                 <textarea
                   value={actionComment}
-                  onChange={(e) => { setActionComment(e.target.value); if (e.target.value.trim()) setCommentError(false) }}
-                  placeholder="Add a comment (required for Return / Reject)"
+                  onChange={(e) => setActionComment(e.target.value)}
+                  placeholder="Add a comment (required)"
                   rows={3}
-                  className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none transition-all resize-none mb-1 ${commentError ? 'border-red-500/60 focus:border-red-500' : 'border-white/10 focus:border-indigo-500/50'}`}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all resize-none mb-3"
                 />
-                {commentError && (
-                  <p className="text-xs text-red-400 mb-3">A comment is required when returning or rejecting.</p>
-                )}
-                {!commentError && <div className="mb-3" />}
 
                 {/* Action buttons */}
                 <div className="flex gap-2">
                   <button
                     onClick={() => actionMutation.mutate({ action: 'APPROVE' })}
-                    disabled={actionMutation.isPending}
-                    className="flex-1 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                    disabled={actionMutation.isPending || !hodFlagsAnswered || !actionComment.trim()}
+                    className="flex-1 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Approve
                   </button>
                   <button
-                    onClick={() => {
-                      if (!actionComment.trim()) { setCommentError(true); return }
-                      actionMutation.mutate({ action: 'RETURN' })
-                    }}
-                    disabled={actionMutation.isPending}
-                    className="flex-1 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:text-amber-300 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                    onClick={() => actionMutation.mutate({ action: 'RETURN' })}
+                    disabled={actionMutation.isPending || !actionComment.trim()}
+                    className="flex-1 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:text-amber-300 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Return
                   </button>
                   <button
-                    onClick={() => {
-                      if (!actionComment.trim()) { setCommentError(true); return }
-                      actionMutation.mutate({ action: 'REJECT' })
-                    }}
-                    disabled={actionMutation.isPending}
-                    className="flex-1 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                    onClick={() => actionMutation.mutate({ action: 'REJECT' })}
+                    disabled={actionMutation.isPending || !actionComment.trim()}
+                    className="flex-1 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Reject
                   </button>
