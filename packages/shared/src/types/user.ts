@@ -14,6 +14,7 @@ export interface User {
 export interface JwtPayload {
   sub: string
   email: string
+  full_name: string
   plant_id: string
   permissions: Permission[]
   iat: number

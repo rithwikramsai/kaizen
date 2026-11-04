@@ -116,7 +116,7 @@ export async function loginWithMicrosoft(code: string): Promise<MicrosoftLoginRe
     getPrimaryPlantId(user.id),
   ])
 
-  const accessToken = signAccessToken(user.id, user.email, plantId, permissions)
+  const accessToken = signAccessToken(user.id, user.email, user.full_name, plantId, permissions)
   const refreshToken = await storeRefreshToken(user.id)
 
   return {
