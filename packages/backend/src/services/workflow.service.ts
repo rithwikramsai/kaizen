@@ -435,7 +435,7 @@ export async function processWorkflowAction(params: {
         )
         // Sync entity status so the owner can edit and resubmit (C3/C4)
         await syncEntityStatus(client, instance.entity_type, instance.entity_id, 'RETURNED')
-        // Notify submitter
+        // Notify submitter — in-app + email (M6)
         await engine.createNotification({
           recipientId: instance.initiated_by,
           type: 'STEP_RETURNED',
@@ -444,6 +444,13 @@ export async function processWorkflowAction(params: {
           entityType: instance.entity_type,
           entityId: instance.entity_id,
         })
+        if (instance.initiated_by) {
+          void sendEmailForEvent('STEP_RETURNED', instance.initiated_by, {
+            comment: params.comment,
+            entityType: instance.entity_type,
+            entityId: instance.entity_id,
+          })
+        }
       } else {
         nextStage = target.stage_code
         nextStatus = 'RETURNED'
@@ -464,11 +471,18 @@ export async function processWorkflowAction(params: {
             [target.assigned_user_id],
           )
           nextAssignee = uRes.rows[0] ?? null
+          // Notify previous reviewer — in-app + email (M6)
           await engine.createNotification({
             recipientId: target.assigned_user_id,
             type: 'STEP_RETURNED',
             title: 'A step has been returned to you',
             body: params.comment!,
+            entityType: instance.entity_type,
+            entityId: instance.entity_id,
+          })
+          void sendEmailForEvent('STEP_RETURNED', target.assigned_user_id, {
+            stageCode: target.stage_code,
+            comment: params.comment,
             entityType: instance.entity_type,
             entityId: instance.entity_id,
           })

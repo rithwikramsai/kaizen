@@ -1,5 +1,7 @@
 export type EmailEvent =
+  | 'IDEA_SUBMITTED'
   | 'STEP_ASSIGNED'
+  | 'STEP_RETURNED'
   | 'IDEA_APPROVED'
   | 'IDEA_REJECTED'
   | 'KAIZEN_APPROVED'
@@ -19,6 +21,8 @@ export interface TemplateContext {
   kaizenTitle?: string | undefined
   rewardAmount?: number | null | undefined
   rewardDetails?: string | null | undefined
+  deeplink?: string | undefined    // M7 — direct link to the record in the frontend
+  registrationId?: string | undefined
 }
 
 interface EmailTemplate {
@@ -28,10 +32,49 @@ interface EmailTemplate {
 
 const APP_NAME = 'KIET Kaizen Platform'
 
+const link = (deeplink?: string) =>
+  deeplink ? `View record: ${deeplink}` : ''
+
 export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTemplate {
   const name = ctx.recipientName ?? 'User'
 
   switch (event) {
+    case 'IDEA_SUBMITTED':
+      return {
+        subject: `Your Kaizen idea has been submitted — ${ctx.registrationId ?? 'Submitted'}`,
+        body: lines([
+          `Dear ${name},`,
+          '',
+          `Your Kaizen improvement idea has been successfully submitted and is now under review.`,
+          '',
+          ctx.registrationId ? `Registration ID: ${ctx.registrationId}` : '',
+          '',
+          `You will receive notifications as it moves through the approval workflow.`,
+          link(ctx.deeplink),
+          '',
+          `Regards,`,
+          APP_NAME,
+        ]),
+      }
+
+    case 'STEP_RETURNED':
+      return {
+        subject: `Your submission has been returned for revision`,
+        body: lines([
+          `Dear ${name},`,
+          '',
+          `A submission has been returned for revision.`,
+          '',
+          ctx.comment ? `Reviewer comment: ${ctx.comment}` : '',
+          '',
+          `Please review the feedback, make the necessary changes, and resubmit.`,
+          link(ctx.deeplink),
+          '',
+          `Regards,`,
+          APP_NAME,
+        ]),
+      }
+
     case 'STEP_ASSIGNED':
       return {
         subject: `Action Required: Workflow Step Assigned — ${ctx.stageCode ?? 'Review'}`,
@@ -42,6 +85,7 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           '',
           `Step: ${ctx.stageCode ?? 'Review'}`,
           ctx.entityType ? `Entity: ${ctx.entityType} ${ctx.entityId ?? ''}` : '',
+          link(ctx.deeplink),
           '',
           `Please log in to the ${APP_NAME} to review and take action.`,
           '',
@@ -60,6 +104,7 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           '',
           ctx.kaizenTitle ? `Title: ${ctx.kaizenTitle}` : '',
           ctx.kaizenRef ? `Reference: ${ctx.kaizenRef}` : '',
+          link(ctx.deeplink),
           '',
           `Your submission will now proceed to the next phase.`,
           '',
@@ -77,6 +122,7 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           `After review, your submission has not been approved at this time.`,
           '',
           ctx.comment ? `Reviewer comment: ${ctx.comment}` : '',
+          link(ctx.deeplink),
           '',
           `You may revise and resubmit after addressing the feedback above.`,
           '',
@@ -95,6 +141,7 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           '',
           ctx.kaizenTitle ? `Title: ${ctx.kaizenTitle}` : '',
           ctx.kaizenRef ? `Kaizen Reference: ${ctx.kaizenRef}` : '',
+          link(ctx.deeplink),
           '',
           `Your Kaizen is now eligible for Rewards & Recognition. The Plant OPEX team will be in touch.`,
           '',
@@ -113,6 +160,7 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           '',
           ctx.kaizenRef ? `Kaizen Reference: ${ctx.kaizenRef}` : '',
           ctx.comment ? `Reviewer comment: ${ctx.comment}` : '',
+          link(ctx.deeplink),
           '',
           `Please address the feedback and resubmit your One Pager documentation.`,
           '',
@@ -131,6 +179,7 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           '',
           ctx.kaizenRef ? `Kaizen Reference: ${ctx.kaizenRef}` : '',
           ctx.kaizenTitle ? `Title: ${ctx.kaizenTitle}` : '',
+          link(ctx.deeplink),
           '',
           `Please log in to the ${APP_NAME} to review and approve.`,
           '',
@@ -151,6 +200,7 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           ctx.kaizenTitle ? `Title: ${ctx.kaizenTitle}` : '',
           ctx.rewardAmount != null ? `Reward Amount: ${ctx.rewardAmount}` : '',
           ctx.rewardDetails ? `Details: ${ctx.rewardDetails}` : '',
+          link(ctx.deeplink),
           '',
           `Congratulations on your contribution!`,
           '',
@@ -169,6 +219,7 @@ export function renderTemplate(event: EmailEvent, ctx: TemplateContext): EmailTe
           '',
           ctx.kaizenRef ? `Kaizen Reference: ${ctx.kaizenRef}` : '',
           ctx.kaizenTitle ? `Title: ${ctx.kaizenTitle}` : '',
+          link(ctx.deeplink),
           '',
           `Please log in to the ${APP_NAME} to submit your rating.`,
           '',

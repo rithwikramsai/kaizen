@@ -517,11 +517,23 @@ export async function submitOnePager(
       throw new ServiceError(409, ErrorCodes.CONFLICT, 'One Pager has already been submitted or is not editable')
     }
 
-    // Minimum required fields for One Pager submission
+    // Full mandatory field validation per BRD section 10.3.3 (M10)
     const missing: string[] = []
-    if (!kaizen.title?.trim()) missing.push('Kaizen Title')
-    if (!kaizen.solution_implemented?.trim()) missing.push('Solution Implemented')
+    if (!kaizen.title?.trim())               missing.push('Kaizen Title')
+    if (!kaizen.business_impact?.trim())     missing.push('Business Impact')
+    if (!kaizen.w1h_who?.trim())             missing.push('Problem Statement — Who')
+    if (!kaizen.w1h_what?.trim())            missing.push('Problem Statement — What')
+    if (!kaizen.w1h_where?.trim())           missing.push('Problem Statement — Where')
+    if (!kaizen.w1h_when?.trim())            missing.push('Problem Statement — When')
+    if (!kaizen.w1h_why?.trim())             missing.push('Problem Statement — Why')
+    if (!kaizen.w1h_how?.trim())             missing.push('Problem Statement — How')
+    if (!kaizen.why_1?.trim())               missing.push('Root Cause Analysis — Why 1')
     if (!kaizen.root_cause_analysis?.trim()) missing.push('Root Cause Analysis')
+    if (!kaizen.category_of_cause?.trim())   missing.push('Category of Cause')
+    if (!kaizen.solution_implemented?.trim()) missing.push('Solution Implemented')
+    if (!kaizen.results?.trim())             missing.push('Results')
+    if (kaizen.cost == null)                 missing.push('Cost')
+    if (kaizen.benefit == null)              missing.push('Benefit')
     if (missing.length) {
       throw new ServiceError(
         400,

@@ -223,7 +223,20 @@ export async function assignRegularReward(params: {
         kaizenTitle: title ?? undefined,
         rewardAmount: rewardAmount,
         rewardDetails: rewardDetails,
+        entityType: 'kaizen',
+        entityId: kaizenId,
       })
+      // M12 — in-app notification to reward recipient
+      void pool.query(
+        `INSERT INTO notifications (recipient_id, notification_type, title, body, entity_type, entity_id, created_at)
+         VALUES ($1, 'REWARD_ASSIGNED', $2, $3, 'kaizen', $4, NOW())`,
+        [
+          implementation_owner,
+          'Reward Assigned for Your Kaizen',
+          `Congratulations! A reward has been assigned for your kaizen${title ? `: ${title}` : ''}.`,
+          kaizenId,
+        ],
+      )
     }
 
     return { rewardId }
@@ -315,7 +328,20 @@ export async function nominateHighImpact(params: {
       void sendEmailForEvent('HIGH_IMPACT_NOMINATED', sc.user_id, {
         kaizenRef: kaizenRef ?? undefined,
         kaizenTitle: title ?? undefined,
+        entityType: 'kaizen',
+        entityId: kaizenId,
       })
+      // M12 — in-app notification to each SC member
+      void pool.query(
+        `INSERT INTO notifications (recipient_id, notification_type, title, body, entity_type, entity_id, created_at)
+         VALUES ($1, 'HIGH_IMPACT_NOMINATED', $2, $3, 'kaizen', $4, NOW())`,
+        [
+          sc.user_id,
+          'Action Required: Rate a High-Impact Kaizen',
+          `A kaizen${title ? ` "${title}"` : ''} has been nominated for High-Impact recognition. Please submit your rating.`,
+          kaizenId,
+        ],
+      )
     }
 
     return { nominationId }
