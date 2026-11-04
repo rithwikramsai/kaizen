@@ -11,5 +11,6 @@ INSERT INTO roles (id, name, description, is_active) VALUES
   ('00000000-0000-0000-0000-000000000007', 'Plant Quality',             'Quality reviewer — reviews ideas/One Pagers when QMS flag set',      TRUE),
   ('00000000-0000-0000-0000-000000000008', 'SME',                       'Subject Matter Expert — reviews One Pagers when design change flag', TRUE),
   ('00000000-0000-0000-0000-000000000009', 'Steering Committee Member', 'Rates High Impact nominations',                                       TRUE),
-  ('00000000-0000-0000-0000-000000000010', 'System Admin',              'Full system access — manages users, master data, configuration',     TRUE)
+  ('00000000-0000-0000-0000-000000000010', 'System Admin',              'Full system access — manages users, master data, configuration',     TRUE),
+  ('00000000-0000-0000-0000-000000000011', 'Central OPEX',              'Cross-plant monitoring — views all ideas and reports across plants', TRUE)
 ON CONFLICT (name) DO NOTHING;
