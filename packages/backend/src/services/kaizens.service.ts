@@ -153,6 +153,11 @@ export async function markImplemented(
       throw new ServiceError(404, ErrorCodes.NOT_FOUND, 'Approved idea not found')
     }
 
+    // Ownership check: only the original submitter may mark their own idea for implementation (H3)
+    if (idea.submitted_by !== actorId) {
+      throw new ServiceError(403, ErrorCodes.FORBIDDEN, 'You can only mark implementation of your own ideas')
+    }
+
     // Guard: only one kaizen per idea
     const existingKaizen = await client.query<{ id: string }>(
       `SELECT id FROM kaizens WHERE idea_id = $1`,
