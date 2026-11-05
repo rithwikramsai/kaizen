@@ -17,6 +17,7 @@ router.post('/users', ...canManageUsers, users.createUser)
 router.post('/users/import', ...canManageUsers, upload.single('file'), users.importUsers)
 router.put('/users/:id', ...canManageUsers, users.updateUser)
 router.put('/users/:id/deactivate', ...canManageUsers, users.deactivateUser)
+router.get('/users/:id/roles', ...canManageUsers, users.getUserRoles)
 router.post('/users/:id/roles', ...canManageUsers, users.assignRole)
 router.delete('/users/:id/roles/:role_id', ...canManageUsers, users.revokeRole)
 

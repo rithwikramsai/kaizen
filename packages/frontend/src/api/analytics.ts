@@ -46,8 +46,14 @@ export interface SLAReport {
 
 // ─── API calls ────────────────────────────────────────────────────────────────
 
+export interface WeeklyPoint { week: string; week_start: string; submitted: number; approved: number }
+
 export function getTrends(year: number): Promise<TrendsData> {
   return authFetch<TrendsData>(`/analytics/trends?year=${year}`)
+}
+
+export function getWeeklyTrends(year: number): Promise<WeeklyPoint[]> {
+  return authFetch<WeeklyPoint[]>(`/analytics/weekly?year=${year}`)
 }
 
 export function getPlantAnalytics(): Promise<PlantSummary[]> {

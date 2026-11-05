@@ -52,6 +52,7 @@ export interface TimelineEntry {
 
 export interface IdeasListParams {
   status?: string
+  search?: string
   plant_id?: string
   zone_id?: string
   category_id?: string

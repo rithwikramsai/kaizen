@@ -181,6 +181,42 @@ export async function getMonthlyTrends(plantId: string, year: number): Promise<T
   }
 }
 
+// ─── Weekly Trends ────────────────────────────────────────────────────────────
+
+export interface WeeklyPoint {
+  week: string      // ISO week label e.g. "2026-W01"
+  week_start: string
+  submitted: number
+  approved: number
+}
+
+export async function getWeeklyTrends(plantId: string, year: number): Promise<WeeklyPoint[]> {
+  const res = await pool.query<{ week: string; week_start: string; submitted: number; approved: number }>(
+    `WITH weeks AS (
+       SELECT
+         generate_series(
+           DATE_TRUNC('year', MAKE_DATE($2, 1, 1)),
+           DATE_TRUNC('year', MAKE_DATE($2, 1, 1)) + INTERVAL '52 weeks',
+           INTERVAL '1 week'
+         ) AS week_start
+     )
+     SELECT
+       TO_CHAR(w.week_start, 'IYYY-"W"IW') AS week,
+       TO_CHAR(w.week_start, 'YYYY-MM-DD') AS week_start,
+       COUNT(i.id) FILTER (WHERE i.submitted_at IS NOT NULL)::int AS submitted,
+       COUNT(i.id) FILTER (WHERE i.status = 'APPROVED')::int      AS approved
+     FROM weeks w
+     LEFT JOIN ideas i
+       ON i.plant_id = $1
+      AND DATE_TRUNC('week', COALESCE(i.submitted_at, i.created_at)) = w.week_start
+      AND EXTRACT(YEAR FROM COALESCE(i.submitted_at, i.created_at)) = $2
+     GROUP BY w.week_start
+     ORDER BY w.week_start`,
+    [plantId, year],
+  )
+  return res.rows
+}
+
 // ─── Plant Analytics ──────────────────────────────────────────────────────────
 
 export async function getPlantAnalytics(plantId: string): Promise<PlantSummary[]> {

@@ -156,6 +156,13 @@ export async function processWorkflowAction(params: {
     qms_review_required: boolean
   }>
   sciTechFlag?: boolean
+  hodRatings?: {
+    businessImpact: 1 | 3 | 5
+    sustenance: 1 | 3 | 5
+    innovation: 1 | 3 | 5
+    bprRecommendation: boolean
+  }
+  smeBprRecommendation?: boolean
 }): Promise<WorkflowActionResult> {
   if (!params.comment?.trim()) {
     throw new ServiceError(400, ErrorCodes.VALIDATION_ERROR, 'A comment is required for all workflow actions')
@@ -241,7 +248,17 @@ export async function processWorkflowAction(params: {
           ],
         )
 
-        // Insert dynamic steps based on flags
+        // Store HOD ratings when provided on kaizen IMPL_HOD_REVIEW step
+        if (params.hodRatings && currentStep.stage_code === 'IMPL_HOD_REVIEW') {
+          await client.query(
+            `UPDATE kaizens
+             SET hod_business_impact = $1, hod_sustenance = $2, hod_innovation = $3, hod_bpr_recommendation = $4
+             WHERE id = $5`,
+            [params.hodRatings.businessImpact, params.hodRatings.sustenance, params.hodRatings.innovation, params.hodRatings.bprRecommendation, instance.entity_id],
+          )
+        }
+
+      // Insert dynamic steps based on flags
         const wfType = instance.workflow_type
         let specs: DynamicStepSpec[] = []
         if (wfType === 'IDEA_APPROVAL') {
@@ -278,6 +295,14 @@ export async function processWorkflowAction(params: {
           const plantId = await resolveInstancePlantId(client, instance.id)
           await engine.insertDynamicSteps(instance.id, plantId, instance.workflow_type, specs)
         }
+      }
+
+      // Store SME BPR recommendation
+      if (currentStep.stage_code === 'SME_REVIEW' && params.smeBprRecommendation !== undefined) {
+        await client.query(
+          `UPDATE kaizens SET sme_bpr_recommendation = $1 WHERE id = $2`,
+          [params.smeBprRecommendation, instance.entity_id],
+        )
       }
 
       // Update sci_tech_required if SME sets it

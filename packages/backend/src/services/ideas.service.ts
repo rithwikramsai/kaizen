@@ -306,6 +306,12 @@ export async function listIdeas(
     conditions.push(`i.status = $${paramIdx++}`)
     values.push(query['status'])
   }
+  if (query['search'] && typeof query['search'] === 'string') {
+    const term = `%${query['search']}%`
+    conditions.push(`(i.title ILIKE $${paramIdx} OR i.registration_id ILIKE $${paramIdx} OR i.problem_statement ILIKE $${paramIdx})`)
+    values.push(term)
+    paramIdx++
+  }
   if (query['plant_id']) {
     conditions.push(`i.plant_id = $${paramIdx++}`)
     values.push(query['plant_id'])

@@ -212,6 +212,31 @@ export async function deactivateUser(id: string): Promise<UserRecord> {
   return user
 }
 
+export async function getUserRoles(userId: string): Promise<{
+  id: string; role_id: string; role_name: string; plant_id: string; plant_name: string | null; zone_id: string | null; granted_at: string
+}[]> {
+  const res = await pool.query<{
+    role_id: string; role_name: string; plant_id: string; plant_name: string | null; zone_id: string | null; granted_at: Date
+  }>(
+    `SELECT ur.role_id, r.name AS role_name, ur.plant_id, p.name AS plant_name, ur.zone_id, ur.granted_at
+     FROM user_roles ur
+     JOIN roles r ON r.id = ur.role_id
+     LEFT JOIN plants p ON p.id = ur.plant_id
+     WHERE ur.user_id = $1
+     ORDER BY ur.granted_at DESC`,
+    [userId],
+  )
+  return res.rows.map((r) => ({
+    id: `${userId}_${r.role_id}_${r.plant_id}`,
+    role_id: r.role_id,
+    role_name: r.role_name,
+    plant_id: r.plant_id,
+    plant_name: r.plant_name,
+    zone_id: r.zone_id,
+    granted_at: (r.granted_at as Date).toISOString(),
+  }))
+}
+
 export async function assignRole(
   userId: string,
   roleId: string,

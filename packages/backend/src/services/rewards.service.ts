@@ -424,14 +424,19 @@ export async function submitScRating(params: {
   nominationId: string
   actorId: string
   actorPlantId: string
-  ratingScore: number
+  businessImpactScore: 1 | 3 | 5
+  sustenanceScore: 1 | 3 | 5
+  innovationScore: 1 | 3 | 5
+  bprRecommendation: boolean
   ratingNotes: string | null
 }): Promise<void> {
-  const { nominationId, actorId, actorPlantId, ratingScore, ratingNotes } = params
+  const { nominationId, actorId, actorPlantId, businessImpactScore, sustenanceScore, innovationScore, bprRecommendation, ratingNotes } = params
 
-  if (ratingScore < 1 || ratingScore > 10) {
-    throw new ServiceError(400, ErrorCodes.VALIDATION_ERROR, 'Rating score must be between 1 and 10')
+  const validScores = [1, 3, 5] as const
+  if (!validScores.includes(businessImpactScore) || !validScores.includes(sustenanceScore) || !validScores.includes(innovationScore)) {
+    throw new ServiceError(400, ErrorCodes.VALIDATION_ERROR, 'Each rating score must be 1, 3, or 5')
   }
+  const ratingScore = Math.round((businessImpactScore + sustenanceScore + innovationScore) / 3 * 10) / 10
 
   const client = await pool.connect()
   try {
@@ -468,12 +473,14 @@ export async function submitScRating(params: {
       throw new ServiceError(409, ErrorCodes.CONFLICT, 'You have already submitted a rating for this nomination')
     }
 
-    // Submit rating
+    // Submit rating with 3-category scores
     await client.query(
       `UPDATE sc_ratings
-       SET rating_score = $1, rating_notes = $2, has_rated = TRUE, rated_at = NOW()
-       WHERE id = $3`,
-      [ratingScore, ratingNotes, ratingRow.rows[0]!.id],
+       SET rating_score = $1, rating_notes = $2, has_rated = TRUE, rated_at = NOW(),
+           business_impact_score = $3, sustenance_score = $4, innovation_score = $5,
+           bpr_recommendation = $6
+       WHERE id = $7`,
+      [ratingScore, ratingNotes, businessImpactScore, sustenanceScore, innovationScore, bprRecommendation, ratingRow.rows[0]!.id],
     )
 
     // Check if all SC members have rated
@@ -491,7 +498,7 @@ export async function submitScRating(params: {
     await client.query(
       `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
        VALUES ($1, 'SC_RATING_SUBMITTED', 'kaizen', $2, $3)`,
-      [actorId, nominationId, JSON.stringify({ rating_score: ratingScore })],
+      [actorId, nominationId, JSON.stringify({ rating_score: ratingScore, business_impact_score: businessImpactScore, sustenance_score: sustenanceScore, innovation_score: innovationScore, bpr_recommendation: bprRecommendation })],
     )
 
     await client.query('COMMIT')

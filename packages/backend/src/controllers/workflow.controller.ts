@@ -112,13 +112,34 @@ export async function processIdeaAction(req: Request, res: Response): Promise<vo
 export async function processKaizenAction(req: Request, res: Response): Promise<void> {
   try {
     const { kaizenId } = req.params
-    const { action, comment, flags, sci_tech_required } = req.body
+    const body = req.body as {
+      action: string
+      comment?: string
+      flags?: Record<string, boolean>
+      sciTechFlag?: boolean
+      sci_tech_required?: boolean
+      hod_business_impact?: number
+      hod_sustenance?: number
+      hod_innovation?: number
+      hod_bpr_recommendation?: boolean
+      sme_bpr_recommendation?: boolean
+    }
+    const { action, comment, flags } = body
     const actorId = req.user!.id
 
     if (!action) {
       sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'action is required')
       return
     }
+
+    const hodRatings = (body.hod_business_impact && body.hod_sustenance && body.hod_innovation)
+      ? {
+          businessImpact: body.hod_business_impact as 1 | 3 | 5,
+          sustenance: body.hod_sustenance as 1 | 3 | 5,
+          innovation: body.hod_innovation as 1 | 3 | 5,
+          bprRecommendation: body.hod_bpr_recommendation ?? false,
+        }
+      : undefined
 
     const result = await processWorkflowAction({
       entityType: 'kaizen',
@@ -127,7 +148,9 @@ export async function processKaizenAction(req: Request, res: Response): Promise<
       action: String(action).toUpperCase(),
       comment,
       flags,
-      sciTechFlag: Boolean(sci_tech_required),
+      sciTechFlag: Boolean(body.sciTechFlag ?? body.sci_tech_required),
+      hodRatings,
+      smeBprRecommendation: body.sme_bpr_recommendation,
     })
 
     sendSuccess(res, result)

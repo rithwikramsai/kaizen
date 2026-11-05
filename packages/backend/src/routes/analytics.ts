@@ -8,6 +8,7 @@ export const analyticsRouter: ReturnType<typeof Router> = Router()
 const guard = [authenticate, requirePermission('CAN_VIEW_REPORTS')] as const
 
 analyticsRouter.get('/trends',           ...guard, ctrl.trends)
+analyticsRouter.get('/weekly',           ...guard, ctrl.weekly)
 analyticsRouter.get('/plants',           ...guard, ctrl.plants)
 analyticsRouter.get('/zones',            ...guard, ctrl.zones)
 analyticsRouter.get('/departments',      ...guard, ctrl.departments)

@@ -9,6 +9,39 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+type ScoreVal = 1 | 3 | 5
+
+const SCORE_OPTS: { value: ScoreVal; label: string; desc: string }[] = [
+  { value: 1, label: '1', desc: 'Low' },
+  { value: 3, label: '3', desc: 'Medium' },
+  { value: 5, label: '5', desc: 'High' },
+]
+
+function ScoreSelector({ label, value, onChange }: { label: string; value: ScoreVal; onChange: (v: ScoreVal) => void }) {
+  return (
+    <div>
+      <p className="text-xs text-slate-400 mb-2">{label}</p>
+      <div className="flex gap-2">
+        {SCORE_OPTS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-bold border transition-all ${
+              value === opt.value
+                ? 'bg-amber-500/25 border-amber-500/40 text-amber-300'
+                : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <span className="block">{opt.label}</span>
+            <span className="block text-[10px] font-normal mt-0.5">{opt.desc}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function RatingModal({
   item,
   onClose,
@@ -18,11 +51,18 @@ function RatingModal({
   onClose: () => void
   onSuccess: () => void
 }) {
-  const [score, setScore] = useState(5)
+  const [businessImpact, setBusinessImpact] = useState<ScoreVal>(3)
+  const [sustenance, setSustenance] = useState<ScoreVal>(3)
+  const [innovation, setInnovation] = useState<ScoreVal>(3)
+  const [bpr, setBpr] = useState(false)
   const [notes, setNotes] = useState('')
 
   const mutation = useMutation({
-    mutationFn: () => submitScRating(item.nomination_id, score, notes || null),
+    mutationFn: () => submitScRating(
+      item.nomination_id,
+      { businessImpact: businessImpact, sustenance, innovation, bprRecommendation: bpr },
+      notes || null,
+    ),
     onSuccess,
   })
 
@@ -39,34 +79,30 @@ function RatingModal({
         )}
 
         <div className="space-y-5">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-slate-400">Rating Score</label>
-              <span className="text-2xl font-bold text-amber-300">{score}</span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={10}
-              step={1}
-              value={score}
-              onChange={(e) => setScore(Number(e.target.value))}
-              className="w-full accent-amber-400"
-            />
-            <div className="flex justify-between text-[10px] text-slate-600 mt-1">
-              <span>1 (Low)</span>
-              <span>10 (High)</span>
-            </div>
-          </div>
+          <ScoreSelector label="Business Impact (SQDECP KPIs)" value={businessImpact} onChange={setBusinessImpact} />
+          <ScoreSelector label="Sustenance of Kaizen (Control)" value={sustenance} onChange={setSustenance} />
+          <ScoreSelector label="Innovation Category" value={innovation} onChange={setInnovation} />
+
+          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+            <input type="checkbox" checked={bpr} onChange={(e) => setBpr(e.target.checked)} className="accent-indigo-500" />
+            Recommend for Best Practice Replication (BPR)
+          </label>
+
           <div>
             <label className="block text-xs text-slate-400 mb-1.5">Notes (optional)</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              placeholder="Justification for your rating…"
+              placeholder="Justification for your ratings…"
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-none"
             />
+          </div>
+
+          <div className="bg-white/3 border border-white/8 rounded-lg px-4 py-3 text-xs text-slate-400">
+            Final Score: <span className="text-amber-300 font-bold text-sm">
+              {((businessImpact + sustenance + innovation) / 3).toFixed(1)}
+            </span> / 5
           </div>
         </div>
 
