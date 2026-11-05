@@ -81,16 +81,31 @@ export async function getNomination(req: Request, res: Response): Promise<void> 
 export async function submitRating(req: Request, res: Response): Promise<void> {
   try {
     const { nominationId } = req.params
-    const { rating_score, rating_notes } = req.body as { rating_score: number; rating_notes?: string }
-    if (rating_score === undefined || rating_score === null) {
-      sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'rating_score is required')
+    const body = req.body as {
+      business_impact_score?: number
+      sustenance_score?: number
+      innovation_score?: number
+      bpr_recommendation?: boolean
+      rating_notes?: string
+    }
+    const { business_impact_score, sustenance_score, innovation_score, bpr_recommendation, rating_notes } = body
+    if (!business_impact_score || !sustenance_score || !innovation_score) {
+      sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'business_impact_score, sustenance_score, and innovation_score are all required')
+      return
+    }
+    const validScores = [1, 3, 5]
+    if (!validScores.includes(business_impact_score) || !validScores.includes(sustenance_score) || !validScores.includes(innovation_score)) {
+      sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'Each score must be 1, 3, or 5')
       return
     }
     await submitScRating({
       nominationId: nominationId!,
       actorId: req.user!.id,
       actorPlantId: req.user!.plant_id,
-      ratingScore: Number(rating_score),
+      businessImpactScore: business_impact_score as 1 | 3 | 5,
+      sustenanceScore: sustenance_score as 1 | 3 | 5,
+      innovationScore: innovation_score as 1 | 3 | 5,
+      bprRecommendation: bpr_recommendation ?? false,
       ratingNotes: rating_notes ?? null,
     })
     sendSuccess(res, { message: 'Rating submitted' })

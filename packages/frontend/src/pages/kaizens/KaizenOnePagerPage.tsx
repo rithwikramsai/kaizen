@@ -15,7 +15,7 @@ import { PageTransition } from '../../components/PageTransition.js'
 const onePagerSchema = z.object({
   title:                z.string().min(3, 'Title is required'),
   team_members:         z.string().optional(),
-  business_impact:      z.string().optional(),
+  business_impact:      z.string().min(1, 'Business Impact is required'),
   before_description:   z.string().optional(),
   w1h_who:              z.string().optional(),
   w1h_what:             z.string().optional(),
@@ -31,16 +31,100 @@ const onePagerSchema = z.object({
   root_cause_analysis:  z.string().min(1, 'Root Cause Analysis is required'),
   category_of_cause:    z.string().optional(),
   solution_implemented: z.string().min(1, 'Solution Implemented is required'),
-  results:              z.string().optional(),
+  results:              z.string().min(1, 'Results are required'),
   after_description:    z.string().optional(),
-  cost:                 z.preprocess((v) => (v === '' || v == null ? null : Number(v)), z.number().nullable()),
-  benefit:              z.preprocess((v) => (v === '' || v == null ? null : Number(v)), z.number().nullable()),
+  cost:                 z.preprocess((v) => (v === '' || v == null ? null : Number(v)), z.number({ required_error: 'Cost is required' }).positive('Cost must be a positive number').nullable()),
+  benefit:              z.preprocess((v) => (v === '' || v == null ? null : Number(v)), z.number({ required_error: 'Benefit is required' }).positive('Benefit must be a positive number').nullable()),
   early_equipment_mgmt: z.boolean().default(false),
   applicable_documents: z.string().optional(),
   remarks:              z.string().optional(),
 })
 
 type OnePagerFormValues = z.infer<typeof onePagerSchema>
+
+// ─── HOD Rating Modal ─────────────────────────────────────────────────────────
+
+type ScoreVal = 1 | 3 | 5
+const SCORE_OPTIONS: { value: ScoreVal; label: string }[] = [
+  { value: 1, label: '1 — Low' },
+  { value: 3, label: '3 — Medium' },
+  { value: 5, label: '5 — High' },
+]
+
+function StarSelector({ value, onChange, disabled }: { value: ScoreVal; onChange: (v: ScoreVal) => void; disabled?: boolean }) {
+  return (
+    <div className="flex gap-2">
+      {SCORE_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${
+            value === opt.value
+              ? 'bg-amber-500/25 border-amber-500/40 text-amber-300'
+              : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function HodRatingModal({
+  onClose,
+  onConfirm,
+  initial,
+}: {
+  onClose: () => void
+  onConfirm: (r: { businessImpact: ScoreVal; sustenance: ScoreVal; innovation: ScoreVal; bprRecommendation: boolean }) => void
+  initial: { businessImpact: ScoreVal; sustenance: ScoreVal; innovation: ScoreVal; bprRecommendation: boolean } | null
+}) {
+  const [businessImpact, setBusinessImpact] = useState<ScoreVal>(initial?.businessImpact ?? 3)
+  const [sustenance, setSustenance] = useState<ScoreVal>(initial?.sustenance ?? 3)
+  const [innovation, setInnovation] = useState<ScoreVal>(initial?.innovation ?? 3)
+  const [bpr, setBpr] = useState(initial?.bprRecommendation ?? false)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-white font-semibold text-base mb-1">HOD Kaizen Ratings</h2>
+        <p className="text-slate-400 text-xs mb-5">Rate this Kaizen on 3 criteria (1 = Low, 3 = Medium, 5 = High)</p>
+
+        <div className="space-y-5">
+          <div>
+            <p className="text-xs text-slate-400 mb-2">Business Impact (SQDECP KPIs)</p>
+            <StarSelector value={businessImpact} onChange={setBusinessImpact} />
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 mb-2">Sustenance of Kaizen (Control)</p>
+            <StarSelector value={sustenance} onChange={setSustenance} />
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 mb-2">Innovation Category</p>
+            <StarSelector value={innovation} onChange={setInnovation} />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer pt-1">
+            <input type="checkbox" checked={bpr} onChange={(e) => setBpr(e.target.checked)} className="accent-indigo-500" />
+            Recommend for Best Practice Replication (BPR)
+          </label>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 bg-white/5 border border-white/10 text-slate-300 text-sm rounded-lg hover:bg-white/10 transition-all">Cancel</button>
+          <button
+            onClick={() => onConfirm({ businessImpact, sustenance, innovation, bprRecommendation: bpr })}
+            className="flex-1 px-4 py-2 bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-sm font-medium rounded-lg hover:bg-emerald-600/30 transition-all"
+          >
+            Confirm Ratings
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── Helper components ────────────────────────────────────────────────────────
 
@@ -113,7 +197,16 @@ export function KaizenOnePagerPage() {
     (s) => s.assigned_to.id === user?.id && s.status === 'PENDING',
   )
   const isSmeStep = myPendingStep?.stage_code === 'SME_REVIEW'
+  const isHodImplStep = myPendingStep?.stage_code === 'IMPL_HOD_REVIEW'
   const [sciTechFlag, setSciTechFlag] = useState(false)
+  const [smeBprFlag, setSmeBprFlag] = useState(false)
+  const [showHodRatingModal, setShowHodRatingModal] = useState(false)
+  const [hodRatings, setHodRatings] = useState<{
+    businessImpact: 1 | 3 | 5
+    sustenance: 1 | 3 | 5
+    innovation: 1 | 3 | 5
+    bprRecommendation: boolean
+  } | null>(null)
 
   const reviewMutation = useMutation({
     mutationFn: (action: 'APPROVE' | 'RETURN' | 'REJECT') => {
@@ -125,7 +218,13 @@ export function KaizenOnePagerPage() {
       return submitKaizenWorkflowAction(kaizenId!, {
         action,
         comment: reviewComment.trim() || undefined,
-        ...(isSmeStep ? { sciTechFlag } : {}),
+        ...(isSmeStep ? { sciTechFlag, sme_bpr_recommendation: smeBprFlag } : {}),
+        ...(isHodImplStep && hodRatings ? {
+          hod_business_impact: hodRatings.businessImpact,
+          hod_sustenance: hodRatings.sustenance,
+          hod_innovation: hodRatings.innovation,
+          hod_bpr_recommendation: hodRatings.bprRecommendation,
+        } : {}),
       })
     },
     onSuccess: (_data, action) => {
@@ -219,7 +318,14 @@ export function KaizenOnePagerPage() {
   }
 
   const onSubmit: SubmitHandler<OnePagerFormValues> = (data) => {
-    // Save draft first, then show the preview modal (M15)
+    if (beforeFileIds.length === 0) {
+      addToast('Before Images are required (upload at least one)', 'error')
+      return
+    }
+    if (afterFileIds.length === 0) {
+      addToast('After Images are required (upload at least one)', 'error')
+      return
+    }
     saveMutation.mutate(data, {
       onSuccess: () => setShowSubmitPreview(true),
     })
@@ -277,6 +383,13 @@ export function KaizenOnePagerPage() {
   if (isPreview) {
     return (
       <>
+        {showHodRatingModal && (
+          <HodRatingModal
+            onClose={() => setShowHodRatingModal(false)}
+            onConfirm={(ratings) => { setHodRatings(ratings); setShowHodRatingModal(false) }}
+            initial={hodRatings}
+          />
+        )}
         <OnePagerPreview
           kaizen={kaizen}
           values={getValues()}
@@ -291,10 +404,36 @@ export function KaizenOnePagerPage() {
                 Your Review — {myPendingStep.stage_code.replace(/_/g, ' ')}
               </h2>
               {isSmeStep && (
-                <label className="flex items-center gap-2 text-sm text-slate-300 mb-4 cursor-pointer">
-                  <input type="checkbox" checked={sciTechFlag} onChange={(e) => setSciTechFlag(e.target.checked)} className="accent-indigo-500" />
-                  Sci-Tech Communication Required
-                </label>
+                <div className="mb-4 space-y-2">
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input type="checkbox" checked={sciTechFlag} onChange={(e) => setSciTechFlag(e.target.checked)} className="accent-indigo-500" />
+                    Sci-Tech Communication Required
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input type="checkbox" checked={smeBprFlag} onChange={(e) => setSmeBprFlag(e.target.checked)} className="accent-indigo-500" />
+                    Recommend for Best Practice Replication (BPR)
+                  </label>
+                </div>
+              )}
+              {isHodImplStep && (
+                <div className="mb-4">
+                  {hodRatings ? (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-center justify-between">
+                      <div className="text-xs text-slate-400 space-y-0.5">
+                        <p>Business Impact: <span className="text-emerald-300 font-bold">{hodRatings.businessImpact}</span> · Sustenance: <span className="text-emerald-300 font-bold">{hodRatings.sustenance}</span> · Innovation: <span className="text-emerald-300 font-bold">{hodRatings.innovation}</span></p>
+                        <p>BPR: <span className="text-slate-300">{hodRatings.bprRecommendation ? 'Yes' : 'No'}</span></p>
+                      </div>
+                      <button onClick={() => setShowHodRatingModal(true)} className="text-xs text-indigo-400 hover:text-indigo-300">Edit</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowHodRatingModal(true)}
+                      className="w-full py-2.5 bg-indigo-600/15 border border-indigo-500/25 text-indigo-300 text-sm rounded-xl hover:bg-indigo-600/25 transition-all"
+                    >
+                      + Add HOD Ratings (required to approve)
+                    </button>
+                  )}
+                </div>
               )}
               <textarea
                 value={reviewComment}
@@ -305,7 +444,11 @@ export function KaizenOnePagerPage() {
               />
               {commentError && <p className="text-xs text-red-400 mb-3">Comment is required for Return and Reject.</p>}
               <div className="flex gap-3">
-                <button onClick={() => reviewMutation.mutate('APPROVE')} disabled={reviewMutation.isPending} className="px-5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50">
+                <button
+                  onClick={() => reviewMutation.mutate('APPROVE')}
+                  disabled={reviewMutation.isPending || (isHodImplStep && !hodRatings)}
+                  className="px-5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                >
                   {reviewMutation.isPending ? 'Processing…' : '✓ Approve'}
                 </button>
                 <button onClick={() => reviewMutation.mutate('RETURN')} disabled={reviewMutation.isPending} className="px-5 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/25 text-amber-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50">
@@ -376,7 +519,7 @@ export function KaizenOnePagerPage() {
             <Field label="Team Members" error={errors.team_members?.message}>
               <textarea {...register('team_members')} disabled={isReadOnly} rows={2} placeholder="Names of team members involved" className={textareaCls} />
             </Field>
-            <Field label="Business Impact" error={errors.business_impact?.message}>
+            <Field label="Business Impact" required error={errors.business_impact?.message}>
               <textarea {...register('business_impact')} disabled={isReadOnly} rows={3} placeholder="Describe the business impact" className={textareaCls} />
             </Field>
           </Section>
@@ -442,7 +585,7 @@ export function KaizenOnePagerPage() {
             <Field label="Description of After State">
               <textarea {...register('after_description')} disabled={isReadOnly} rows={3} placeholder="Describe the situation after the improvement" className={textareaCls} />
             </Field>
-            <Field label="Results Achieved">
+            <Field label="Results Achieved" required error={errors.results?.message}>
               <textarea {...register('results')} disabled={isReadOnly} rows={3} placeholder="Quantify and describe the results" className={textareaCls} />
             </Field>
           </Section>
@@ -454,7 +597,7 @@ export function KaizenOnePagerPage() {
             ) : (
               <div className="space-y-5">
                 <div>
-                  <p className="text-xs font-medium text-slate-400 mb-2">Before Images</p>
+                  <p className="text-xs font-medium text-slate-400 mb-2">Before Images <span className="text-red-400">*</span></p>
                   <FileUpload
                     key={`${kaizen.id}-before`}
                     entityType="kaizen"
@@ -466,7 +609,7 @@ export function KaizenOnePagerPage() {
                   />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-400 mb-2">After Images</p>
+                  <p className="text-xs font-medium text-slate-400 mb-2">After Images <span className="text-red-400">*</span></p>
                   <FileUpload
                     key={`${kaizen.id}-after`}
                     entityType="kaizen"
@@ -496,10 +639,10 @@ export function KaizenOnePagerPage() {
           {/* Cost & Benefit */}
           <Section title="Cost & Benefit Analysis">
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Investment Cost (₹)">
+              <Field label="Investment Cost (₹)" required error={errors.cost?.message}>
                 <input type="number" step="0.01" {...register('cost')} disabled={isReadOnly} placeholder="0.00" className={inputCls} />
               </Field>
-              <Field label="Monetary Benefit (₹)">
+              <Field label="Monetary Benefit (₹)" required error={errors.benefit?.message}>
                 <input type="number" step="0.01" {...register('benefit')} disabled={isReadOnly} placeholder="0.00" className={inputCls} />
               </Field>
             </div>

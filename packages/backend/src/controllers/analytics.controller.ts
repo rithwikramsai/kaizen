@@ -3,6 +3,7 @@ import { sendSuccess, sendError, ErrorCodes } from '../utils/response.js'
 import { ServiceError } from '../utils/errors.js'
 import {
   getMonthlyTrends,
+  getWeeklyTrends,
   getPlantAnalytics,
   getZoneAnalytics,
   getDepartmentAnalytics,
@@ -31,6 +32,21 @@ export async function trends(req: Request, res: Response): Promise<void> {
       return
     }
     const data = await getMonthlyTrends(req.user!.plant_id, year)
+    sendSuccess(res, data)
+  } catch (err) {
+    handleError(res, err)
+  }
+}
+
+// GET /reports/weekly?year=2024
+export async function weekly(req: Request, res: Response): Promise<void> {
+  try {
+    const year = parseInt((req.query['year'] as string | undefined) ?? String(new Date().getFullYear()), 10)
+    if (isNaN(year) || year < 2000 || year > 2100) {
+      sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'Invalid year')
+      return
+    }
+    const data = await getWeeklyTrends(req.user!.plant_id, year)
     sendSuccess(res, data)
   } catch (err) {
     handleError(res, err)

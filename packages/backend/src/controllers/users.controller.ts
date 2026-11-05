@@ -148,6 +148,15 @@ export async function importUsers(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function getUserRoles(req: Request, res: Response): Promise<void> {
+  try {
+    const roles = await usersService.getUserRoles(req.params['id']!)
+    sendSuccess(res, roles)
+  } catch (err) {
+    handleError(res, err)
+  }
+}
+
 export async function listRoles(_req: Request, res: Response): Promise<void> {
   try {
     const roles = await usersService.listRoles()

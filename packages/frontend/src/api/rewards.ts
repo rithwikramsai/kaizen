@@ -116,11 +116,21 @@ export function getNominationDetail(nominationId: string): Promise<NominationDet
   return authFetch<NominationDetail>(`/rewards/nominations/${nominationId}`)
 }
 
-export function submitScRating(nominationId: string, ratingScore: number, ratingNotes: string | null): Promise<{ message: string }> {
+export function submitScRating(
+  nominationId: string,
+  scores: { businessImpact: 1 | 3 | 5; sustenance: 1 | 3 | 5; innovation: 1 | 3 | 5; bprRecommendation: boolean },
+  ratingNotes: string | null,
+): Promise<{ message: string }> {
   return authFetch<{ message: string }>(`/rewards/nominations/${nominationId}/rate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rating_score: ratingScore, rating_notes: ratingNotes }),
+    body: JSON.stringify({
+      business_impact_score: scores.businessImpact,
+      sustenance_score: scores.sustenance,
+      innovation_score: scores.innovation,
+      bpr_recommendation: scores.bprRecommendation,
+      rating_notes: ratingNotes,
+    }),
   })
 }
 

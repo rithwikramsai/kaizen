@@ -9,6 +9,8 @@ import {
   getDepartmentAnalytics,
   getCategoryAnalytics,
   getTrends,
+  getWeeklyTrends,
+  getPlantAnalytics,
   downloadExport,
   type ExportDataset,
 } from '../../api/analytics.js'
@@ -23,10 +25,12 @@ const TOOLTIP_STYLE = { backgroundColor: '#1a1a2e', border: '1px solid rgba(255,
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'trends' | 'zones' | 'departments' | 'categories' | 'exports'
+type Tab = 'trends' | 'weekly' | 'plants' | 'zones' | 'departments' | 'categories' | 'exports'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'trends',       label: 'Monthly Trends' },
+  { id: 'weekly',       label: 'Week-wise' },
+  { id: 'plants',       label: 'Plant-wise YTD' },
   { id: 'zones',        label: 'Zones' },
   { id: 'departments',  label: 'Departments' },
   { id: 'categories',   label: 'Categories' },
@@ -291,6 +295,106 @@ function TrendsTab() {
   )
 }
 
+function WeeklyChart() {
+  const [year, setYear] = useState(new Date().getFullYear())
+  const years = Array.from({ length: 3 }, (_, i) => new Date().getFullYear() - i)
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['analytics', 'weekly', year],
+    queryFn: () => getWeeklyTrends(year),
+    staleTime: 120_000,
+  })
+  const hasData = data?.some(r => r.submitted > 0 || r.approved > 0) ?? false
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-400">Ideas submitted and approved by calendar week</p>
+        <select value={year} onChange={(e) => setYear(Number(e.target.value))}
+          className="bg-white/5 border border-white/10 text-white text-sm rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          {years.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+      {isLoading && <SkeletonDetail />}
+      {isError && <div className="text-red-400 text-sm">Failed to load weekly data.</div>}
+      {data && (
+        <ChartCard title="Week-wise Kaizens">
+          {!hasData ? <div className="text-slate-600 text-sm py-8 text-center">No data for this period</div> : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+                <CartesianGrid stroke={GRID_COLOR} vertical={false} />
+                <XAxis dataKey="week" tick={{ ...TICK_STYLE, fontSize: 9 }} tickLine={false} axisLine={false} interval={3} />
+                <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#94a3b8' }} itemStyle={{ color: '#e2e8f0' }} />
+                <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+                <Bar dataKey="submitted" fill="#38bdf8" radius={[2,2,0,0]} name="Submitted" />
+                <Bar dataKey="approved" fill="#34d399" radius={[2,2,0,0]} name="Approved" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      )}
+    </div>
+  )
+}
+
+function PlantsChart() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['analytics', 'plants'],
+    queryFn: getPlantAnalytics,
+    staleTime: 120_000,
+  })
+
+  if (isLoading) return <SkeletonDetail />
+  if (isError) return <div className="text-red-400 text-sm">Failed to load plant data.</div>
+  if (!data?.length) return <div className="text-slate-500 text-sm py-8 text-center">No plant data available.</div>
+
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-slate-400">Ideas and kaizens by plant — year to date</p>
+      <ChartCard title="Plant-wise Kaizens YTD">
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+            <CartesianGrid stroke={GRID_COLOR} vertical={false} />
+            <XAxis dataKey="plant_name" tick={TICK_STYLE} tickLine={false} axisLine={false} />
+            <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} allowDecimals={false} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#94a3b8' }} itemStyle={{ color: '#e2e8f0' }} />
+            <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+            <Bar dataKey="ideas" fill="#818cf8" radius={[3,3,0,0]} name="Ideas" />
+            <Bar dataKey="approved_ideas" fill="#34d399" radius={[3,3,0,0]} name="Approved" />
+            <Bar dataKey="kaizens" fill="#38bdf8" radius={[3,3,0,0]} name="Kaizens" />
+            <Bar dataKey="rewards" fill="#fbbf24" radius={[3,3,0,0]} name="Rewards" />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+      {/* Summary table */}
+      <div className="glass rounded-2xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/5">
+              {['Plant', 'Ideas', 'Approved', 'Kaizens', 'Rewards', 'High Impact'].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((p, i) => (
+              <tr key={p.plant_id} className={i < data.length - 1 ? 'border-b border-white/5' : ''}>
+                <td className="px-4 py-3 text-white font-medium">{p.plant_name}</td>
+                <td className="px-4 py-3 text-slate-300">{p.ideas}</td>
+                <td className="px-4 py-3 text-emerald-400">{p.approved_ideas}</td>
+                <td className="px-4 py-3 text-sky-400">{p.kaizens}</td>
+                <td className="px-4 py-3 text-amber-400">{p.rewards}</td>
+                <td className="px-4 py-3 text-violet-400">{p.high_impact}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export function AnalyticsPage() {
   const [tab, setTab] = useState<Tab>('trends')
 
@@ -306,6 +410,8 @@ export function AnalyticsPage() {
         <TabBar active={tab} onChange={setTab} />
 
         {tab === 'trends'      && <TrendsTab />}
+        {tab === 'weekly'      && <WeeklyChart />}
+        {tab === 'plants'      && <PlantsChart />}
         {tab === 'zones'       && <ZonesChart />}
         {tab === 'departments' && <DepartmentsChart />}
         {tab === 'categories'  && <CategoriesChart />}

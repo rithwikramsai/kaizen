@@ -167,7 +167,16 @@ export function getKaizenWorkflowStatus(kaizenId: string): Promise<KaizenWorkflo
 
 export async function submitKaizenWorkflowAction(
   kaizenId: string,
-  payload: { action: 'APPROVE' | 'RETURN' | 'REJECT'; comment?: string; sciTechFlag?: boolean },
+  payload: {
+    action: 'APPROVE' | 'RETURN' | 'REJECT'
+    comment?: string
+    sciTechFlag?: boolean
+    hod_business_impact?: 1 | 3 | 5
+    hod_sustenance?: 1 | 3 | 5
+    hod_innovation?: 1 | 3 | 5
+    hod_bpr_recommendation?: boolean
+    sme_bpr_recommendation?: boolean
+  },
 ): Promise<void> {
   await authFetch<null>(`/workflow/kaizens/${kaizenId}/action`, {
     method: 'POST',
