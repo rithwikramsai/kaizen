@@ -1,4 +1,4 @@
-import { authFetch } from './client.js'
+import { authFetch, authFetchList } from './client.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,7 +58,7 @@ export interface SystemHealth {
   database: 'ok' | 'error'
   totals: { users: number; ideas: number; kaizens: number }
   pending_workflows: number
-  failed_notifications: number
+  unread_notifications: number
 }
 
 // ─── Admin Dashboard ──────────────────────────────────────────────────────────
@@ -77,6 +77,13 @@ export function fetchWorkflowTemplateById(id: string): Promise<WorkflowTemplate>
   return authFetch<WorkflowTemplate>(`/admin/workflow-templates/${id}`)
 }
 
+export function createWorkflowTemplate(input: { workflow_type: string; name: string }): Promise<WorkflowTemplate> {
+  return authFetch<WorkflowTemplate>('/admin/workflow-templates', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
 // ─── SLA Configs ──────────────────────────────────────────────────────────────
 
 export function fetchSlaConfigs(plantId?: string): Promise<SlaConfig[]> {
@@ -89,6 +96,21 @@ export function patchSlaConfig(id: string, slaHours: number): Promise<SlaConfig>
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sla_hours: slaHours }),
+  })
+}
+
+export interface CreateSlaConfigInput {
+  plant_id: string
+  stage_code: string
+  workflow_type: string
+  sla_hours: number
+  reminder_hrs?: number
+}
+
+export function createSlaConfig(input: CreateSlaConfigInput): Promise<SlaConfig> {
+  return authFetch<SlaConfig>('/admin/sla-configs', {
+    method: 'POST',
+    body: JSON.stringify(input),
   })
 }
 
@@ -114,7 +136,7 @@ export function fetchAuditLogs(params: AuditLogQuery = {}): Promise<AuditLogsRes
   if (params.entity_type) qs.set('entity_type', params.entity_type)
   if (params.actor_id)    qs.set('actor_id',    params.actor_id)
   const query = qs.toString()
-  return authFetch<AuditLogsResult>(`/admin/audit-logs${query ? `?${query}` : ''}`)
+  return authFetchList<AuditLogRow>(`/admin/audit-logs${query ? `?${query}` : ''}`)
 }
 
 // ─── System Health ────────────────────────────────────────────────────────────

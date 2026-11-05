@@ -251,6 +251,68 @@ export async function listRoles(): Promise<RoleRecord[]> {
   return result.rows
 }
 
+export interface ImportUsersResult {
+  created: number
+  skipped: number
+  errors: string[]
+}
+
+export async function importUsersFromCsv(
+  csvContent: string,
+  grantedBy: string,
+): Promise<ImportUsersResult> {
+  const lines = csvContent.split('\n').map((l) => l.trim()).filter(Boolean)
+  if (lines.length < 2) {
+    return { created: 0, skipped: 0, errors: ['CSV must have a header row and at least one data row'] }
+  }
+
+  const header = lines[0]!.split(',').map((h) => h.trim().toLowerCase())
+  const required = ['employee_id', 'email', 'full_name', 'password']
+  const missing = required.filter((f) => !header.includes(f))
+  if (missing.length > 0) {
+    return { created: 0, skipped: 0, errors: [`Missing required columns: ${missing.join(', ')}`] }
+  }
+
+  const idx = (col: string) => header.indexOf(col)
+  let created = 0
+  let skipped = 0
+  const errors: string[] = []
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i]!.split(',').map((c) => c.trim())
+    const employee_id = cols[idx('employee_id')] ?? ''
+    const email = cols[idx('email')] ?? ''
+    const full_name = cols[idx('full_name')] ?? ''
+    const password = cols[idx('password')] ?? ''
+    const phone = idx('phone') >= 0 ? (cols[idx('phone')] ?? undefined) : undefined
+
+    if (!employee_id || !email || !full_name || !password) {
+      errors.push(`Row ${i}: missing required field`)
+      skipped++
+      continue
+    }
+    if (password.length < 8) {
+      errors.push(`Row ${i}: password must be at least 8 characters`)
+      skipped++
+      continue
+    }
+
+    try {
+      await createUser({ employee_id, email, full_name, password, phone, granted_by: grantedBy })
+      created++
+    } catch (err) {
+      if (err instanceof ServiceError && err.httpStatus === 409) {
+        skipped++
+      } else {
+        errors.push(`Row ${i} (${email}): ${err instanceof Error ? err.message : 'unknown error'}`)
+        skipped++
+      }
+    }
+  }
+
+  return { created, skipped, errors }
+}
+
 export async function listPermissions(): Promise<PermissionRecord[]> {
   const result = await pool.query<PermissionRecord>(
     `SELECT id, code, description FROM permissions ORDER BY code`,

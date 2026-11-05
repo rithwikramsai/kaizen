@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '../hooks/useAuth.js'
 import { useToast } from '../hooks/useToast.js'
+import { t } from '../i18n/index.js'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -179,7 +180,7 @@ export function LoginPage() {
 
   const handleForgotPassword = async () => {
     const email = forgotEmail.trim()
-    if (!email) { addToast('Enter your email address above first.', 'error'); return }
+    if (!email) { addToast(t('login.forgotEmail.hint'), 'error'); return }
     setForgotPending(true)
     try {
       await fetch(`${API_BASE}/auth/forgot-password`, {
@@ -187,7 +188,7 @@ export function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
-      addToast('If that email is registered, a reset link has been sent.', 'success')
+      addToast(t('login.forgotEmail.sent'), 'success')
       setShowForgot(false)
     } finally {
       setForgotPending(false)
@@ -328,8 +329,8 @@ export function LoginPage() {
               <KietLogo size={28} />
               <span className="text-white font-bold">KIET Platform</span>
             </div>
-            <p className="text-slate-400 text-sm font-medium mb-1">Welcome back</p>
-            <h2 className="text-2xl font-bold text-white">Sign in to KIET</h2>
+            <p className="text-slate-400 text-sm font-medium mb-1">{t('login.welcome')}</p>
+            <h2 className="text-2xl font-bold text-white">{t('login.title')}</h2>
             <div className="mt-2 w-10 h-0.5 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" />
           </div>
 
@@ -338,7 +339,7 @@ export function LoginPage() {
             {/* Email */}
             <FloatingInput
               id="email"
-              label="Email address"
+              label={t('login.email')}
               type="email"
               registration={register('email')}
               error={errors.email?.message}
@@ -347,7 +348,7 @@ export function LoginPage() {
             {/* Password */}
             <FloatingInput
               id="password"
-              label="Password"
+              label={t('login.password')}
               type={showPassword ? 'text' : 'password'}
               registration={register('password')}
               error={errors.password?.message}
@@ -371,14 +372,14 @@ export function LoginPage() {
                   {...register('rememberMe')}
                   className="w-4 h-4 rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-1 cursor-pointer accent-indigo-500"
                 />
-                <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Remember me</span>
+                <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">{t('login.rememberMe')}</span>
               </label>
               <button
                 type="button"
                 onClick={() => setShowForgot((v) => !v)}
                 className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
               >
-                Forgot password?
+                {t('login.forgotPassword')}
               </button>
             </div>
 
@@ -389,7 +390,7 @@ export function LoginPage() {
                   type="email"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder={t('login.forgotEmail.placeholder')}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all"
                 />
                 <button
@@ -398,7 +399,7 @@ export function LoginPage() {
                   disabled={forgotPending}
                   className="px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-400 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
                 >
-                  {forgotPending ? '…' : 'Send'}
+                  {forgotPending ? '…' : t('login.forgotEmail.send')}
                 </button>
               </div>
             )}
@@ -419,17 +420,17 @@ export function LoginPage() {
               {isSubmitting ? (
                 <>
                   <Spinner />
-                  <span>Signing in…</span>
+                  <span>{t('login.submitting')}</span>
                 </>
               ) : (
-                'Sign in'
+                t('login.submit')
               )}
             </button>
 
             {/* SSO divider */}
             <div className="flex items-center gap-3 my-1">
               <div className="flex-1 h-px bg-white/10" />
-              <span className="text-xs text-slate-500 font-medium whitespace-nowrap">or continue with</span>
+              <span className="text-xs text-slate-500 font-medium whitespace-nowrap">{t('login.orContinueWith')}</span>
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
@@ -440,7 +441,7 @@ export function LoginPage() {
               className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/50 text-slate-300 rounded-xl py-2.5 text-sm font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
             >
               <MicrosoftLogo />
-              Microsoft
+              {t('login.microsoft')}
             </button>
 
             {/* Quick submit without sign-in */}
@@ -449,7 +450,7 @@ export function LoginPage() {
               onClick={() => navigate('/submit-anonymous')}
               className="w-full border border-dashed border-white/20 hover:border-indigo-500/50 text-slate-400 hover:text-indigo-400 rounded-xl py-2.5 text-sm transition-all duration-300 hover:bg-indigo-500/5"
             >
-              💡 Submit an idea without signing in →
+              {t('login.anonymousSubmit')}
             </button>
 
           </form>

@@ -81,15 +81,16 @@ export class WorkflowEngine {
     templateSlaHours: number | null,
   ): Promise<void> {
     const slaHours = await this.getSlaHours(plantId, stageCode, workflowType, templateSlaHours)
-    const slaInterval = slaHours != null ? `NOW() + interval '${slaHours} hours'` : 'NULL'
 
     await this.client.query(
       `UPDATE workflow_steps
        SET action_assigned_at = NOW(),
-           sla_due_at = ${slaInterval},
+           sla_due_at = CASE WHEN $2::numeric IS NOT NULL
+                             THEN NOW() + ($2::numeric * interval '1 hour')
+                             ELSE NULL END,
            status = 'PENDING'
        WHERE id = $1`,
-      [stepId],
+      [stepId, slaHours],
     )
   }
 

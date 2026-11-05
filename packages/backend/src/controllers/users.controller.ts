@@ -129,6 +129,25 @@ export async function revokeRole(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function importUsers(req: Request, res: Response): Promise<void> {
+  const file = (req as Request & { file?: { buffer: Buffer; mimetype: string } }).file
+  if (!file) {
+    sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'CSV file is required')
+    return
+  }
+  if (!file.mimetype.includes('csv') && !file.mimetype.includes('text')) {
+    sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'File must be a CSV')
+    return
+  }
+  try {
+    const csvContent = file.buffer.toString('utf-8')
+    const result = await usersService.importUsersFromCsv(csvContent, req.user!.id)
+    sendSuccess(res, result, 200)
+  } catch (err) {
+    handleError(res, err)
+  }
+}
+
 export async function listRoles(_req: Request, res: Response): Promise<void> {
   try {
     const roles = await usersService.listRoles()

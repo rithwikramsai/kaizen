@@ -1,0 +1,17 @@
+{
+  "login.welcome": "Welcome back",
+  "login.title": "Sign in to KIET",
+  "login.email": "Email address",
+  "login.password": "Password",
+  "login.rememberMe": "Remember me",
+  "login.forgotPassword": "Forgot password?",
+  "login.forgotEmail.placeholder": "Enter your email",
+  "login.forgotEmail.send": "Send",
+  "login.forgotEmail.hint": "Enter your email address above first.",
+  "login.forgotEmail.sent": "If that email is registered, a reset link has been sent.",
+  "login.submit": "Sign in",
+  "login.submitting": "Signing in…",
+  "login.orContinueWith": "or continue with",
+  "login.microsoft": "Microsoft",
+  "login.anonymousSubmit": "💡 Submit an idea without signing in →"
+}
