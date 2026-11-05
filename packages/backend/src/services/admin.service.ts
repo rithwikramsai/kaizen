@@ -63,7 +63,7 @@ export interface SystemHealth {
   database: 'ok' | 'error'
   totals: { users: number; ideas: number; kaizens: number }
   pending_workflows: number
-  failed_notifications: number
+  unread_notifications: number
 }
 
 // ─── Admin Dashboard ──────────────────────────────────────────────────────────
@@ -193,6 +193,38 @@ export async function getWorkflowTemplateById(id: string): Promise<WorkflowTempl
   }
 }
 
+const ALLOWED_WORKFLOW_TYPES = ['IDEA_APPROVAL', 'IMPLEMENTATION_APPROVAL'] as const
+
+export async function createWorkflowTemplate(input: {
+  workflow_type: string
+  name: string
+}): Promise<WorkflowTemplate> {
+  if (!(ALLOWED_WORKFLOW_TYPES as readonly string[]).includes(input.workflow_type)) {
+    throw new ServiceError(
+      400,
+      ErrorCodes.VALIDATION_ERROR,
+      `workflow_type must be one of: ${ALLOWED_WORKFLOW_TYPES.join(', ')}`,
+    )
+  }
+
+  const existing = await pool.query<{ id: string }>(
+    `SELECT id FROM workflow_templates WHERE workflow_type = $1`,
+    [input.workflow_type],
+  )
+  if (existing.rows.length > 0) {
+    throw new ServiceError(409, ErrorCodes.CONFLICT, `A template for workflow_type '${input.workflow_type}' already exists`)
+  }
+
+  const res = await pool.query<{ id: string; workflow_type: string; name: string; is_active: boolean }>(
+    `INSERT INTO workflow_templates (workflow_type, name, is_active)
+     VALUES ($1, $2, TRUE)
+     RETURNING id, workflow_type, name, is_active`,
+    [input.workflow_type, input.name],
+  )
+  const row = res.rows[0]!
+  return { id: row.id, workflow_type: row.workflow_type, name: row.name, is_active: row.is_active, steps: [] }
+}
+
 // ─── SLA Configs ──────────────────────────────────────────────────────────────
 
 export async function listSlaConfigs(plantId?: string | undefined): Promise<SlaConfig[]> {
@@ -247,6 +279,36 @@ export async function updateSlaConfig(id: string, slaHours: number): Promise<Sla
     [row.plant_id],
   )
 
+  return {
+    id: row.id,
+    plant_id: row.plant_id,
+    plant_name: plantRes.rows[0]?.name ?? null,
+    stage_code: row.stage_code,
+    workflow_type: row.workflow_type,
+    sla_hours: row.sla_hours,
+    reminder_hrs: row.reminder_hrs,
+    is_active: row.is_active,
+  }
+}
+
+export async function createSlaConfig(input: {
+  plant_id: string
+  stage_code: string
+  workflow_type: string
+  sla_hours: number
+  reminder_hrs?: number | undefined
+}): Promise<SlaConfig> {
+  const res = await pool.query<{
+    id: string; plant_id: string; stage_code: string; workflow_type: string
+    sla_hours: number; reminder_hrs: number | null; is_active: boolean
+  }>(
+    `INSERT INTO sla_configs (plant_id, stage_code, workflow_type, sla_hours, reminder_hrs, is_active)
+     VALUES ($1, $2, $3, $4, $5, TRUE)
+     RETURNING id, plant_id, stage_code, workflow_type, sla_hours, reminder_hrs, is_active`,
+    [input.plant_id, input.stage_code, input.workflow_type, input.sla_hours, input.reminder_hrs ?? null],
+  )
+  const row = res.rows[0]!
+  const plantRes = await pool.query<{ name: string }>(`SELECT name FROM plants WHERE id = $1`, [row.plant_id])
   return {
     id: row.id,
     plant_id: row.plant_id,
@@ -345,7 +407,7 @@ export async function getSystemHealth(): Promise<SystemHealth> {
          (SELECT COUNT(*)::int FROM kaizens) AS kaizens`,
     ),
     pool.query<{ count: number }>(
-      `SELECT COUNT(*)::int AS count FROM workflow_steps WHERE status = 'PENDING'`,
+      `SELECT COUNT(DISTINCT workflow_instance_id)::int AS count FROM workflow_steps WHERE status = 'PENDING'`,
     ),
     pool.query<{ count: number }>(
       `SELECT COUNT(*)::int AS count FROM notifications WHERE is_read = FALSE`,
@@ -358,6 +420,6 @@ export async function getSystemHealth(): Promise<SystemHealth> {
     database: dbStatus,
     totals: { users: t.users, ideas: t.ideas, kaizens: t.kaizens },
     pending_workflows: pendingRes.rows[0]!.count,
-    failed_notifications: failedNotifRes.rows[0]!.count,
+    unread_notifications: failedNotifRes.rows[0]!.count,
   }
 }

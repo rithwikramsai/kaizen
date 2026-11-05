@@ -108,7 +108,7 @@ export function SystemHealthPage() {
                 />
                 <HealthCard
                   label="Unread Notifications"
-                  value={data.failed_notifications}
+                  value={data.unread_notifications}
                   accent="bg-slate-500/10 border-slate-500/20"
                 />
               </div>

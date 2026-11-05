@@ -1,7 +1,10 @@
 import { Router } from 'express'
+import multer from 'multer'
 import { authenticate } from '../middleware/authenticate.js'
 import { requirePermission } from '../middleware/requirePermission.js'
 import * as users from '../controllers/users.controller.js'
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } })
 
 const router: ReturnType<typeof Router> = Router()
 
@@ -11,6 +14,7 @@ const canManageSystem = [authenticate, requirePermission('CAN_MANAGE_SYSTEM')]
 router.get('/users/me', authenticate, users.getMe)
 router.get('/users', ...canManageUsers, users.listUsers)
 router.post('/users', ...canManageUsers, users.createUser)
+router.post('/users/import', ...canManageUsers, upload.single('file'), users.importUsers)
 router.put('/users/:id', ...canManageUsers, users.updateUser)
 router.put('/users/:id/deactivate', ...canManageUsers, users.deactivateUser)
 router.post('/users/:id/roles', ...canManageUsers, users.assignRole)
