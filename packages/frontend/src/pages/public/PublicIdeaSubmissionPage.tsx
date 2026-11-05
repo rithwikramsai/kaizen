@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useI18n, LANGUAGES } from '../../i18n/index.js'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import {
   lookupEmployee,
@@ -37,6 +38,7 @@ function AcgLogo({ height = 32 }: { height?: number }) {
 
 function PageHeader() {
   const navigate = useNavigate()
+  const { lang, setLang } = useI18n()
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -46,12 +48,31 @@ function PageHeader() {
           <div className="text-xs text-gray-500">ACG — Submit Your Idea</div>
         </div>
       </div>
-      <button
-        onClick={() => navigate('/login')}
-        className="text-sm font-medium text-white bg-red-600 hover:bg-red-700 px-4 py-1.5 rounded-lg transition-colors"
-      >
-        Staff Login
-      </button>
+      <div className="flex items-center gap-3">
+        {/* Language selector */}
+        <div className="relative">
+          <select
+            value={lang}
+            onChange={e => setLang(e.target.value as typeof lang)}
+            className="appearance-none rounded-lg pl-3 pr-7 py-1.5 text-[13px] font-medium border border-gray-200 bg-gray-50 text-gray-700 focus:outline-none focus:border-red-400 cursor-pointer transition-all"
+          >
+            {LANGUAGES.map(l => (
+              <option key={l.code} value={l.code}>{l.native}</option>
+            ))}
+          </select>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </span>
+        </div>
+        <button
+          onClick={() => navigate('/login')}
+          className="text-sm font-medium text-white bg-red-600 hover:bg-red-700 px-4 py-1.5 rounded-lg transition-colors"
+        >
+          Staff Login
+        </button>
+      </div>
     </header>
   )
 }

@@ -1,0 +1,19 @@
+{
+  "login.welcome": "परत स्वागत आहे",
+  "login.title": "तुमच्या Kaizen डॅशबोर्डवर साइन इन करा",
+  "login.username": "वापरकर्तानाव",
+  "login.email": "ईमेल पत्ता",
+  "login.password": "पासवर्ड",
+  "login.rememberMe": "मला लक्षात ठेवा",
+  "login.forgotPassword": "पासवर्ड विसरलात?",
+  "login.forgotEmail.placeholder": "तुमचा ईमेल प्रविष्ट करा",
+  "login.forgotEmail.send": "पाठवा",
+  "login.forgotEmail.hint": "प्रथम तुमचा ईमेल पत्ता प्रविष्ट करा.",
+  "login.forgotEmail.sent": "तो ईमेल नोंदणीकृत असल्यास, रीसेट लिंक पाठवला आहे.",
+  "login.submit": "साइन इन",
+  "login.submitting": "साइन इन होत आहे…",
+  "login.orContinueWith": "किंवा सुरू ठेवा",
+  "login.microsoft": "SSO ने लॉगिन करा",
+  "login.anonymousSubmit": "लॉगिन शिवाय तुमची कल्पना सादर करा",
+  "lang.select": "भाषा निवडा"
+}

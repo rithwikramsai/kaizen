@@ -1,0 +1,19 @@
+{
+  "login.welcome": "ಮತ್ತೆ ಸ್ವಾಗತ",
+  "login.title": "ನಿಮ್ಮ Kaizen ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ",
+  "login.username": "ಬಳಕೆದಾರ ಹೆಸರು",
+  "login.email": "ಇಮೇಲ್ ವಿಳಾಸ",
+  "login.password": "ಪಾಸ್‌ವರ್ಡ್",
+  "login.rememberMe": "ನನ್ನನ್ನು ನೆನಪಿಡಿ",
+  "login.forgotPassword": "ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿರಾ?",
+  "login.forgotEmail.placeholder": "ನಿಮ್ಮ ಇಮೇಲ್ ನಮೂದಿಸಿ",
+  "login.forgotEmail.send": "ಕಳುಹಿಸಿ",
+  "login.forgotEmail.hint": "ಮೊದಲು ನಿಮ್ಮ ಇಮೇಲ್ ವಿಳಾಸ ನಮೂದಿಸಿ.",
+  "login.forgotEmail.sent": "ಆ ಇಮೇಲ್ ನೋಂದಾಯಿಸಿದ್ದರೆ, ರೀಸೆಟ್ ಲಿಂಕ್ ಕಳುಹಿಸಲಾಗಿದೆ.",
+  "login.submit": "ಸೈನ್ ಇನ್",
+  "login.submitting": "ಸೈನ್ ಇನ್ ಆಗುತ್ತಿದೆ…",
+  "login.orContinueWith": "ಅಥವಾ ಮುಂದುವರಿಯಿರಿ",
+  "login.microsoft": "SSO ಮೂಲಕ ಲಾಗಿನ್ ಮಾಡಿ",
+  "login.anonymousSubmit": "ಲಾಗಿನ್ ಇಲ್ಲದೆ ನಿಮ್ಮ ಆಲೋಚನೆಯನ್ನು ಸಲ್ಲಿಸಿ",
+  "lang.select": "ಭಾಷೆ ಆಯ್ಕೆ ಮಾಡಿ"
+}

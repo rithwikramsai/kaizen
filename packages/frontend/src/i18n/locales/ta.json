@@ -1,0 +1,19 @@
+{
+  "login.welcome": "மீண்டும் வரவேற்கிறோம்",
+  "login.title": "உங்கள் Kaizen டாஷ்போர்டில் உள்நுழையுங்கள்",
+  "login.username": "பயனர் பெயர்",
+  "login.email": "மின்னஞ்சல் முகவரி",
+  "login.password": "கடவுச்சொல்",
+  "login.rememberMe": "என்னை நினைவில் வை",
+  "login.forgotPassword": "கடவுச்சொல் மறந்தீர்களா?",
+  "login.forgotEmail.placeholder": "உங்கள் மின்னஞ்சலை உள்ளிடுங்கள்",
+  "login.forgotEmail.send": "அனுப்பு",
+  "login.forgotEmail.hint": "முதலில் உங்கள் மின்னஞ்சல் முகவரியை உள்ளிடுங்கள்.",
+  "login.forgotEmail.sent": "அந்த மின்னஞ்சல் பதிவு செய்யப்பட்டிருந்தால், மீட்டமைப்பு இணைப்பு அனுப்பப்பட்டது.",
+  "login.submit": "உள்நுழை",
+  "login.submitting": "உள்நுழைகிறது…",
+  "login.orContinueWith": "அல்லது தொடரவும்",
+  "login.microsoft": "SSO மூலம் உள்நுழைக",
+  "login.anonymousSubmit": "உள்நுழைவு இல்லாமல் உங்கள் யோசனையை சமர்ப்பிக்கவும்",
+  "lang.select": "மொழியை தேர்ந்தெடுக்கவும்"
+}

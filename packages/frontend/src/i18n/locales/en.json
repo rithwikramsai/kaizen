@@ -1,10 +1,11 @@
 {
-  "login.welcome": "Welcome back",
-  "login.title": "Sign in to Kaizen",
+  "login.welcome": "Welcome Back",
+  "login.title": "Sign in to access your Kaizen dashboard",
+  "login.username": "Username",
   "login.email": "Email address",
   "login.password": "Password",
   "login.rememberMe": "Remember me",
-  "login.forgotPassword": "Forgot password?",
+  "login.forgotPassword": "Forgot Password?",
   "login.forgotEmail.placeholder": "Enter your email",
   "login.forgotEmail.send": "Send",
   "login.forgotEmail.hint": "Enter your email address above first.",
@@ -12,6 +13,7 @@
   "login.submit": "Sign in",
   "login.submitting": "Signing in…",
   "login.orContinueWith": "or continue with",
-  "login.microsoft": "Microsoft",
-  "login.anonymousSubmit": "💡 Submit an idea without signing in →"
+  "login.microsoft": "Login with SSO",
+  "login.anonymousSubmit": "Submit your Idea without login",
+  "lang.select": "Select Language"
 }

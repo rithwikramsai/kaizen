@@ -1,0 +1,19 @@
+{
+  "login.welcome": "আবার স্বাগতম",
+  "login.title": "আপনার Kaizen ড্যাশবোর্ডে সাইন ইন করুন",
+  "login.username": "ব্যবহারকারীর নাম",
+  "login.email": "ইমেইল ঠিকানা",
+  "login.password": "পাসওয়ার্ড",
+  "login.rememberMe": "আমাকে মনে রাখুন",
+  "login.forgotPassword": "পাসওয়ার্ড ভুলে গেছেন?",
+  "login.forgotEmail.placeholder": "আপনার ইমেইল লিখুন",
+  "login.forgotEmail.send": "পাঠান",
+  "login.forgotEmail.hint": "প্রথমে আপনার ইমেইল ঠিকানা লিখুন।",
+  "login.forgotEmail.sent": "সেই ইমেইলটি নিবন্ধিত থাকলে একটি রিসেট লিংক পাঠানো হয়েছে।",
+  "login.submit": "সাইন ইন",
+  "login.submitting": "সাইন ইন হচ্ছে…",
+  "login.orContinueWith": "অথবা চালিয়ে যান",
+  "login.microsoft": "SSO দিয়ে লগইন করুন",
+  "login.anonymousSubmit": "লগইন ছাড়াই আপনার ধারণা জমা দিন",
+  "lang.select": "ভাষা বেছে নিন"
+}
