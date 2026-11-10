@@ -72,10 +72,11 @@ export interface PublicMasterData {
   locations:      { id: string; hall_id: string; name: string }[]
   categories:     { id: string; name: string }[]
   sub_categories: { id: string; category_id: string; name: string }[]
+  value_streams:  { id: string; name: string; code: string | null; plant_id: string | null }[]
 }
 
 export async function getPublicMasterData(): Promise<PublicMasterData> {
-  const [plants, zones, depts, funcs, halls, locs, cats, subCats] = await Promise.all([
+  const [plants, zones, depts, funcs, halls, locs, cats, subCats, valueStreams] = await Promise.all([
     pool.query<{ id: string; name: string; code: string }>(
       `SELECT id, name, code FROM plants WHERE is_active = TRUE ORDER BY name`),
     pool.query<{ id: string; plant_id: string; name: string }>(
@@ -92,6 +93,8 @@ export async function getPublicMasterData(): Promise<PublicMasterData> {
       `SELECT id, name FROM categories WHERE is_active = TRUE ORDER BY name`),
     pool.query<{ id: string; category_id: string; name: string }>(
       `SELECT id, category_id, name FROM sub_categories WHERE is_active = TRUE ORDER BY name`),
+    pool.query<{ id: string; name: string; code: string | null; plant_id: string | null }>(
+      `SELECT id, name, code, plant_id FROM value_streams WHERE is_active = TRUE ORDER BY sort_order, name`),
   ])
 
   return {
@@ -103,6 +106,7 @@ export async function getPublicMasterData(): Promise<PublicMasterData> {
     locations:      locs.rows,
     categories:     cats.rows,
     sub_categories: subCats.rows,
+    value_streams:  valueStreams.rows,
   }
 }
 
@@ -127,18 +131,20 @@ export async function uploadPublicFile(
 
 export interface PublicIdeaSubmitParams {
   employee_id:       string
+  title:             string
   plant_id:          string
   zone_id:           string
   department_id:     string
-  function_id?:      string | undefined
-  hall_id?:          string | undefined
-  location_id?:      string | undefined
-  value_stream?:     string | undefined
+  function_id:       string
+  hall_id:           string
+  location_id:       string
+  value_stream:      string
   category_id:       string
   sub_category_id?:  string | undefined
   problem_statement: string
   description:       string
   remarks?:          string | undefined
+  contact_email?:    string | undefined
   is_anonymous?:     boolean | undefined
   attachment_file_ids?: string[] | undefined
 }
@@ -147,6 +153,7 @@ export async function submitIdeaAsEmployee(params: PublicIdeaSubmitParams) {
   const employee = await lookupEmployeeById(params.employee_id)
 
   const createParams: CreateIdeaParams = {
+    title:             params.title,
     plant_id:          params.plant_id,
     zone_id:           params.zone_id,
     department_id:     params.department_id,
@@ -155,12 +162,13 @@ export async function submitIdeaAsEmployee(params: PublicIdeaSubmitParams) {
     description:       params.description,
     is_anonymous:      params.is_anonymous ?? false,
     submittedBy:       employee.id,
-    ...(params.function_id      ? { function_id:      params.function_id      } : {}),
-    ...(params.hall_id          ? { hall_id:          params.hall_id          } : {}),
-    ...(params.location_id      ? { location_id:      params.location_id      } : {}),
-    ...(params.value_stream     ? { value_stream:     params.value_stream     } : {}),
+    function_id:       params.function_id,
+    hall_id:           params.hall_id,
+    location_id:       params.location_id,
+    value_stream:      params.value_stream,
     ...(params.sub_category_id  ? { sub_category_id:  params.sub_category_id  } : {}),
     ...(params.remarks          ? { remarks:          params.remarks          } : {}),
+    ...(params.contact_email    ? { contact_email:    params.contact_email    } : {}),
     ...(params.attachment_file_ids?.length
       ? { attachment_file_ids: params.attachment_file_ids }
       : {}),
@@ -176,6 +184,51 @@ export interface QrData {
   label:         string
   plant_code?:   string
   generated_at:  string
+}
+
+// ─── Track idea by Registration ID (public, no auth) ─────────────────────────
+
+export interface PublicIdeaTrackResult {
+  registration_id: string
+  title:           string
+  status:          string
+  current_stage:   string | null
+  submitted_at:    string | null
+  plant_name:      string | null
+}
+
+export async function trackPublicIdea(registrationId: string): Promise<PublicIdeaTrackResult> {
+  const res = await pool.query<{
+    registration_id: string
+    title:           string
+    status:          string
+    submitted_at:    Date | null
+    plant_name:      string | null
+    current_stage:   string | null
+  }>(
+    `SELECT i.registration_id, i.title, i.status, i.submitted_at,
+            p.name        AS plant_name,
+            wi.current_stage
+     FROM ideas i
+     LEFT JOIN plants             p  ON p.id  = i.plant_id
+     LEFT JOIN workflow_instances wi ON wi.entity_type = 'idea' AND wi.entity_id = i.id
+     WHERE UPPER(i.registration_id) = UPPER($1)
+     ORDER BY wi.initiated_at DESC
+     LIMIT 1`,
+    [registrationId],
+  )
+
+  const row = res.rows[0]
+  if (!row) throw new ServiceError(404, ErrorCodes.NOT_FOUND, 'No idea found with that Registration ID')
+
+  return {
+    registration_id: row.registration_id,
+    title:           row.title,
+    status:          row.status,
+    current_stage:   row.current_stage ?? null,
+    submitted_at:    row.submitted_at ? row.submitted_at.toISOString() : null,
+    plant_name:      row.plant_name ?? null,
+  }
 }
 
 export function getQrData(baseUrl: string, plantCode?: string): QrData {

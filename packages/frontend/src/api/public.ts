@@ -29,22 +29,25 @@ export interface PublicMasterData {
   locations:      { id: string; hall_id: string; name: string }[]
   categories:     { id: string; name: string }[]
   sub_categories: { id: string; category_id: string; name: string }[]
+  value_streams:  { id: string; name: string; code: string | null; plant_id: string | null }[]
 }
 
 export interface PublicSubmitPayload {
   employee_id:         string
+  title:               string
   plant_id:            string
   zone_id:             string
   department_id:       string
-  function_id?:        string
-  hall_id?:            string
-  location_id?:        string
-  value_stream?:       string
+  function_id:         string
+  hall_id:             string
+  location_id:         string
+  value_stream:        string
   category_id:         string
   sub_category_id?:    string
   problem_statement:   string
   description:         string
   remarks?:            string
+  contact_email?:      string
   is_anonymous?:       boolean
   attachment_file_ids?: string[]
 }
@@ -97,6 +100,21 @@ export function uploadPublicFile(file: File, employeeId: string): Promise<Public
   form.append('file', file)
   form.append('employee_id', employeeId)
   return publicFetch<PublicFileUploadResult>('/public/upload', { method: 'POST', body: form })
+}
+
+export interface PublicIdeaTrackResult {
+  registration_id: string
+  title:           string
+  status:          string
+  current_stage:   string | null
+  submitted_at:    string | null
+  plant_name:      string | null
+}
+
+export function trackPublicIdea(registrationId: string): Promise<PublicIdeaTrackResult> {
+  return publicFetch<PublicIdeaTrackResult>(
+    `/public/ideas/track?id=${encodeURIComponent(registrationId)}`,
+  )
 }
 
 export function getQrData(plantCode?: string): Promise<QrData> {

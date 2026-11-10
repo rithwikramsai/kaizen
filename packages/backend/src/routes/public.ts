@@ -39,6 +39,7 @@ const uploadLimiter = rateLimiter(30, 60 * 60 * 1000)  // 30 uploads / hour per 
 
 router.get('/employee-lookup', lookupLimiter, ctrl.employeeLookup)
 router.get('/master-data',                   ctrl.publicMasterData)
+router.get('/ideas/track', lookupLimiter,    ctrl.trackIdea)
 router.get('/qr',                            ctrl.getQrCode)
 
 router.post('/upload', uploadLimiter, ctrl.publicFileUploadMiddleware, ctrl.publicFileUpload)

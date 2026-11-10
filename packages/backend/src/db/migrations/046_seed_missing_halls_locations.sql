@@ -1,0 +1,55 @@
+-- 046_seed_missing_halls_locations.sql
+-- Electrical function had no halls; Hall A1 had no location for Bay 2;
+-- several halls lacked a second location. Patch all gaps so every
+-- function has at least 2 halls and every hall has at least 2 locations.
+
+-- ── Halls for Electrical (func 50000...0002) ─────────────────────────────────
+INSERT INTO halls (id, func_id, name, code, is_active) VALUES
+  ('60000000-0000-0000-0000-000000000007', '50000000-0000-0000-0000-000000000002', 'Electrical Hall D1', 'D1', TRUE),
+  ('60000000-0000-0000-0000-000000000008', '50000000-0000-0000-0000-000000000002', 'Electrical Hall D2', 'D2', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- ── Missing second halls for Assembly Line, Packaging, Maint., QC ────────────
+INSERT INTO halls (id, func_id, name, code, is_active) VALUES
+  ('60000000-0000-0000-0000-000000000009', '50000000-0000-0000-0000-000000000003', 'Assembly Hall B3', 'B3', TRUE),
+  ('60000000-0000-0000-0000-000000000010', '50000000-0000-0000-0000-000000000004', 'Packaging Hall B4', 'B4', TRUE),
+  ('60000000-0000-0000-0000-000000000011', '50000000-0000-0000-0000-000000000005', 'Maintenance Hall C3', 'C3', TRUE),
+  ('60000000-0000-0000-0000-000000000012', '50000000-0000-0000-0000-000000000006', 'QC Hall C4', 'C4', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- ── Locations for Hall A1 (Bay 2 was missing) ────────────────────────────────
+INSERT INTO locations (id, hall_id, name, code, is_active) VALUES
+  ('70000000-0000-0000-0000-000000000007', '60000000-0000-0000-0000-000000000001', 'Bay 3',  'BAY3', TRUE),
+  ('70000000-0000-0000-0000-000000000008', '60000000-0000-0000-0000-000000000002', 'Bay 4',  'BAY4', TRUE),
+  ('70000000-0000-0000-0000-000000000009', '60000000-0000-0000-0000-000000000002', 'Bay 5',  'BAY5', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- ── Locations for all new halls ───────────────────────────────────────────────
+INSERT INTO locations (id, hall_id, name, code, is_active) VALUES
+  -- Electrical Hall D1
+  ('70000000-0000-0000-0000-000000000010', '60000000-0000-0000-0000-000000000007', 'Panel Room 1',   'PR1', TRUE),
+  ('70000000-0000-0000-0000-000000000011', '60000000-0000-0000-0000-000000000007', 'Panel Room 2',   'PR2', TRUE),
+  -- Electrical Hall D2
+  ('70000000-0000-0000-0000-000000000012', '60000000-0000-0000-0000-000000000008', 'Control Room 1', 'CR1', TRUE),
+  ('70000000-0000-0000-0000-000000000013', '60000000-0000-0000-0000-000000000008', 'Control Room 2', 'CR2', TRUE),
+  -- Assembly Hall B3
+  ('70000000-0000-0000-0000-000000000014', '60000000-0000-0000-0000-000000000009', 'Line 2',         'LN2', TRUE),
+  ('70000000-0000-0000-0000-000000000015', '60000000-0000-0000-0000-000000000009', 'Line 3',         'LN3', TRUE),
+  -- Packaging Hall B4
+  ('70000000-0000-0000-0000-000000000016', '60000000-0000-0000-0000-000000000010', 'Packing Bay 2',  'PB2', TRUE),
+  ('70000000-0000-0000-0000-000000000017', '60000000-0000-0000-0000-000000000010', 'Packing Bay 3',  'PB3', TRUE),
+  -- Maintenance Hall C3
+  ('70000000-0000-0000-0000-000000000018', '60000000-0000-0000-0000-000000000011', 'Workshop 2',     'WS2', TRUE),
+  ('70000000-0000-0000-0000-000000000019', '60000000-0000-0000-0000-000000000011', 'Workshop 3',     'WS3', TRUE),
+  -- QC Hall C4
+  ('70000000-0000-0000-0000-000000000020', '60000000-0000-0000-0000-000000000012', 'Lab B',          'LBB', TRUE),
+  ('70000000-0000-0000-0000-000000000021', '60000000-0000-0000-0000-000000000012', 'Lab C',          'LBC', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- ── Existing halls that lacked a second location ──────────────────────────────
+INSERT INTO locations (id, hall_id, name, code, is_active) VALUES
+  ('70000000-0000-0000-0000-000000000022', '60000000-0000-0000-0000-000000000003', 'Line 4',         'LN4', TRUE),
+  ('70000000-0000-0000-0000-000000000023', '60000000-0000-0000-0000-000000000004', 'Packing Bay 4',  'PB4', TRUE),
+  ('70000000-0000-0000-0000-000000000024', '60000000-0000-0000-0000-000000000005', 'Workshop 4',     'WS4', TRUE),
+  ('70000000-0000-0000-0000-000000000025', '60000000-0000-0000-0000-000000000006', 'Lab D',          'LBD', TRUE)
+ON CONFLICT (id) DO NOTHING;

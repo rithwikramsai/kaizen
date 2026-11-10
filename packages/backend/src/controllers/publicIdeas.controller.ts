@@ -65,18 +65,20 @@ export async function publicFileUpload(req: Request, res: Response, next: NextFu
 
 const submitSchema = z.object({
   employee_id:          z.string().min(1, 'employee_id is required'),
+  title:                z.string().min(3, 'Title must be at least 3 characters').max(200),
   plant_id:             z.string().uuid('plant_id must be a UUID'),
   zone_id:              z.string().uuid('zone_id must be a UUID'),
   department_id:        z.string().uuid('department_id must be a UUID'),
-  function_id:          z.string().uuid().optional(),
-  hall_id:              z.string().uuid().optional(),
-  location_id:          z.string().uuid().optional(),
-  value_stream:         z.string().max(255).optional(),
+  function_id:          z.string().uuid('function_id must be a UUID'),
+  hall_id:              z.string().uuid('hall_id must be a UUID'),
+  location_id:          z.string().uuid('location_id must be a UUID'),
+  value_stream:         z.string().min(1, 'Value Stream is required').max(255),
   category_id:          z.string().uuid('category_id must be a UUID'),
   sub_category_id:      z.string().uuid().optional(),
   problem_statement:    z.string().min(10, 'Problem statement must be at least 10 characters'),
   description:          z.string().min(10, 'Idea description must be at least 10 characters'),
   remarks:              z.string().max(1000).optional(),
+  contact_email:        z.string().email('Enter a valid email').optional().or(z.literal('')),
   is_anonymous:         z.boolean().optional(),
   attachment_file_ids:  z.array(z.string().uuid()).max(5).optional(),
 })
@@ -92,6 +94,22 @@ export async function publicIdeaSubmit(req: Request, res: Response): Promise<voi
   try {
     const result = await svc.submitIdeaAsEmployee(parsed.data)
     sendSuccess(res, result, 201)
+  } catch (err) {
+    handleError(res, err)
+  }
+}
+
+// ─── Track idea by Registration ID ────────────────────────────────────────────
+
+export async function trackIdea(req: Request, res: Response): Promise<void> {
+  const id = typeof req.query['id'] === 'string' ? req.query['id'].trim() : ''
+  if (!id) {
+    sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'Registration ID is required (query param: id)')
+    return
+  }
+  try {
+    const result = await svc.trackPublicIdea(id)
+    sendSuccess(res, result)
   } catch (err) {
     handleError(res, err)
   }
