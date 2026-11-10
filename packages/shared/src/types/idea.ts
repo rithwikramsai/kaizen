@@ -40,13 +40,15 @@ export interface IdeaListItem {
 }
 
 export interface CreateIdeaRequest {
+  // Idea title (optional — auto-generated from problem_statement if omitted)
+  title?: string
   // Operational location (drives workflow routing)
   plant_id: string
   zone_id: string
   department_id: string
-  function_id?: string
-  hall_id?: string
-  location_id?: string
+  function_id: string
+  hall_id: string
+  location_id: string
   value_stream?: string
   // Classification
   category_id: string

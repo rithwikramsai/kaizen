@@ -70,4 +70,7 @@ router.post('/tags', ...canManage, m.createTag)
 router.put('/tags/:id', ...canManage, m.updateTag)
 router.delete('/tags/:id', ...canManage, m.deleteTag)
 
+// ─── Value Streams (read-only dropdown data) ───────────────────────────────────
+router.get('/value-streams', ...authOnly, m.getValueStreams)
+
 export { router as masterRouter }

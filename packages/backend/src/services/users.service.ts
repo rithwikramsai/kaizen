@@ -80,7 +80,10 @@ export async function getMyProfile(userId: string): Promise<MyProfileResult> {
      LEFT JOIN functions f ON f.id = ur.function_id
      LEFT JOIN halls h ON h.id = ur.hall_id
      WHERE u.id = $1
-     ORDER BY ur.granted_at ASC
+     ORDER BY
+       (ur.zone_id IS NOT NULL) DESC,
+       (ur.hall_id IS NOT NULL) DESC,
+       ur.granted_at ASC
      LIMIT 1`,
     [userId],
   )

@@ -228,6 +228,7 @@ input:-webkit-autofill:active {
 @keyframes kz-drift { 0%{transform:translateY(0) translateX(0);opacity:0} 10%{opacity:1} 50%{transform:translateY(-60px) translateX(8px);opacity:0.7} 90%{opacity:0.3} 100%{transform:translateY(-130px) translateX(-6px);opacity:0} }
 @keyframes kz-draw  { to { stroke-dashoffset: 0; } }
 @keyframes kz-fadein { from{opacity:0} to{opacity:1} }
+@keyframes kz-bulb-pulse { 0%,100%{opacity:1;filter:drop-shadow(0 0 7px rgba(255,255,255,0.95))} 45%,55%{opacity:0.2;filter:drop-shadow(0 0 0px rgba(255,255,255,0))} }
 .kz-left  { animation: kz-left  0.7s cubic-bezier(0.22,1,0.36,1) both; }
 .kz-right { animation: kz-right 0.7s 0.1s cubic-bezier(0.22,1,0.36,1) both; }
 .kz-up-1  { animation: kz-up 0.55s 0.05s cubic-bezier(0.22,1,0.36,1) both; }
@@ -352,56 +353,66 @@ export function LoginPage() {
                 <polygon points="338,48 322,40 322,56" fill="white"
                   style={{ opacity: 0, animation: 'kz-fadein 0.3s 1.2s forwards' }}/>
 
-                {/* Check circles ON the stair landings — sequentially */}
-                {([
-                  [119, 155],
-                  [177, 120],
-                  [235, 85],
-                ] as [number,number][]).map(([cx,cy],i) => (
-                  <g key={i} style={{ opacity: 0, animation: `kz-fadein 0.4s ${0.65 + i * 0.2}s forwards` }}>
-                    <circle cx={cx} cy={cy} r="13" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
-                    <path d={`M${cx-5} ${cy} L${cx-1} ${cy+4.5} L${cx+6} ${cy-5.5}`} stroke="white" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                {/* ── STEP 1 (x=59, y=175): Lightbulb — Idea Submission ── */}
+                <g style={{ opacity: 0, animation: 'kz-fadein 0.4s 0.3s forwards' }}>
+                  {/* outer glow ring pulses in sync */}
+                  <circle cx="59" cy="175" r="18" fill="rgba(255,255,255,0.07)"
+                    style={{ animation: 'kz-bulb-pulse 2.4s 1.5s ease-in-out infinite' }}/>
+                  {/* badge circle */}
+                  <circle cx="59" cy="175" r="13" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"
+                    style={{ animation: 'kz-bulb-pulse 2.4s 1.5s ease-in-out infinite' }}/>
+                  {/* proper lightbulb: circle globe + neck + base ridges */}
+                  <g style={{ animation: 'kz-bulb-pulse 2.4s 1.5s ease-in-out infinite' }}>
+                    {/* glass globe — circle */}
+                    <circle cx="59" cy="171" r="6" fill="white" opacity="0.9"/>
+                    {/* neck connecting globe to base */}
+                    <path d="M55.5 176 L55.5 179 Q59 180.5 62.5 179 L62.5 176Z" fill="white" opacity="0.88"/>
+                    {/* base ridge 1 */}
+                    <rect x="55" y="179" width="8" height="2" rx="1" fill="white" opacity="0.85"/>
+                    {/* base ridge 2 — slightly narrower */}
+                    <rect x="56" y="181.5" width="6" height="1.5" rx="0.75" fill="white" opacity="0.7"/>
                   </g>
-                ))}
-
-                {/* Bar chart at end of staircase — no stick figure */}
-                <g style={{ opacity: 0, animation: 'kz-fadein 0.5s 1.1s forwards' }}>
-                  {/* 4 bars rising left to right, sitting on the top step y=48 */}
-                  <rect x="280" y="32" width="6" height="16" rx="2" fill="rgba(255,255,255,0.45)"/>
-                  <rect x="289" y="25" width="6" height="23" rx="2" fill="rgba(255,255,255,0.6)"/>
-                  <rect x="298" y="17" width="6" height="31" rx="2" fill="rgba(255,255,255,0.75)"/>
-                  <rect x="307" y="8"  width="6" height="40" rx="2" fill="rgba(255,255,255,0.92)"/>
-                  {/* Trend line over bars */}
-                  <path d="M283 31 L292 24 L301 16 L310 7" stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                  <polygon points="310,7 304,8 307,13" fill="rgba(255,255,255,0.65)"/>
                 </g>
 
-                {/* Lightbulb */}
-                <g style={{ opacity: 0, animation: 'kz-fadein 0.4s 0.6s forwards' }}>
-                  <circle cx="55" cy="148" r="17" fill="rgba(255,255,255,0.13)" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5"/>
-                  <path d="M55 137 Q61 133 67 137 Q72 142 70 148 L70 154 L40 154 L40 148 Q38 142 43 137 Q49 133 55 137Z"
-                    fill="white" opacity="0.82"/>
-                  <path d="M41 154 L69 154 M43 158 L67 158" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                {/* ── STEP 2 (x=119, y=140): Hourglass — Under Review ── */}
+                {/* cy = 155 - 13 - 2 = 140 */}
+                <g transform="translate(119,140)" opacity="0" style={{ animation: 'kz-fadein 0.4s 0.5s forwards' }}>
+                  <circle cx="0" cy="0" r="13" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+                  <path d="M-6 -8 L6 -8 L0 0 L6 8 L-6 8 L0 0Z" fill="none" stroke="white" strokeWidth="1.8" strokeLinejoin="round"/>
+                  <line x1="-6" y1="-8" x2="6" y2="-8" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                  <line x1="-6" y1="8"  x2="6" y2="8"  stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
                 </g>
 
-                {/* Spinning gear */}
+                {/* ── STEP 3 (x=177, y=105): Checkmark — Approved ── */}
+                {/* cy = 120 - 13 - 2 = 105 */}
+                <g style={{ opacity: 0, animation: 'kz-fadein 0.4s 0.7s forwards' }}>
+                  <circle cx="177" cy="105" r="13" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+                  <path d="M172 105 L175 108.5 L183 99" stroke="white" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </g>
+
+                {/* ── STEP 4 (x=235, y=70): Gear — Implementation ── */}
+                {/* cy = 85 - 13 - 2 = 70 */}
                 <g style={{ opacity: 0, animation: 'kz-fadein 0.4s 0.9s forwards' }}>
-                  <g style={{ transformOrigin: '238px 150px', animation: 'kz-spin 10s linear infinite' }} opacity="0.65">
-                    <g transform="translate(238,150)">
-                      <circle cx="0" cy="0" r="14" fill="none" stroke="white" strokeWidth="1.8"/>
-                      <circle cx="0" cy="0" r="5.5" fill="rgba(255,255,255,0.28)" stroke="white" strokeWidth="1.5"/>
+                  <circle cx="235" cy="70" r="13" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+                  <g style={{ transformOrigin: '235px 70px', animation: 'kz-spin 10s linear infinite' }}>
+                    <g transform="translate(235,70)">
+                      <circle cx="0" cy="0" r="4" fill="rgba(255,255,255,0.3)" stroke="white" strokeWidth="1.4"/>
                       {[0,45,90,135,180,225,270,315].map((a,i) => (
-                        <rect key={i} x="-2.5" y="-16.5" width="5" height="5" fill="white" transform={`rotate(${a})`} rx="1.5"/>
+                        <rect key={i} x="-1.8" y="-9" width="3.6" height="3.6" fill="white" transform={`rotate(${a})`} rx="1"/>
                       ))}
                     </g>
                   </g>
                 </g>
 
-                {/* Hourglass */}
-                <g transform="translate(173,180)" opacity="0" style={{ animation: 'kz-fadein 0.4s 0.7s forwards' }}>
-                  <path d="M-9 -13 L9 -13 L0 0 L9 13 L-9 13 L0 0Z" fill="none" stroke="white" strokeWidth="1.8" strokeLinejoin="round" opacity="0.5"/>
-                  <line x1="-9" y1="-13" x2="9" y2="-13" stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
-                  <line x1="-9" y1="13" x2="9" y2="13" stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
+                {/* ── STEP 5 (top, y=48): Bar chart — Results ── */}
+                {/* bars sit above the top landing, baseline at y=48 */}
+                <g style={{ opacity: 0, animation: 'kz-fadein 0.5s 1.1s forwards' }}>
+                  <rect x="278" y="34" width="6" height="14" rx="2" fill="rgba(255,255,255,0.45)"/>
+                  <rect x="287" y="27" width="6" height="21" rx="2" fill="rgba(255,255,255,0.6)"/>
+                  <rect x="296" y="19" width="6" height="29" rx="2" fill="rgba(255,255,255,0.75)"/>
+                  <rect x="305" y="10" width="6" height="38" rx="2" fill="rgba(255,255,255,0.92)"/>
+                  <path d="M281 33 L290 26 L299 18 L308 9" stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                  <polygon points="308,9 302,10 305,15" fill="rgba(255,255,255,0.65)"/>
                 </g>
 
               </svg>

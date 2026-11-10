@@ -9,6 +9,7 @@ export interface Location { id: string; name: string; code: string }
 export interface Category { id: string; name: string; code: string }
 export interface SubCategory { id: string; name: string; code: string; category_id: string }
 export interface Tag { id: string; name: string; color: string }
+export interface ValueStream { id: string; name: string; code: string | null; plant_id: string | null }
 
 // authFetch already unwraps body.data — return the array directly
 
@@ -46,4 +47,9 @@ export function getSubCategoriesByCategory(catId: string): Promise<SubCategory[]
 
 export function getTags(): Promise<Tag[]> {
   return authFetch<Tag[]>('/master/tags')
+}
+
+export function getValueStreams(plantId?: string): Promise<ValueStream[]> {
+  const qs = plantId ? `?plant_id=${encodeURIComponent(plantId)}` : ''
+  return authFetch<ValueStream[]>(`/master/value-streams${qs}`)
 }
