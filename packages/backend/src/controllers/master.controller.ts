@@ -466,3 +466,13 @@ export async function deleteTag(req: Request, res: Response): Promise<void> {
     sendSuccess(res, null)
   } catch (err) { handleError(res, err) }
 }
+
+// ─── Value Streams (read-only for form dropdowns) ─────────────────────────────
+
+export async function getValueStreams(req: Request, res: Response): Promise<void> {
+  try {
+    const plantId = typeof req.query['plant_id'] === 'string' ? req.query['plant_id'] : undefined
+    const rows = await master.listValueStreams(plantId)
+    sendSuccess(res, rows)
+  } catch (err) { handleError(res, err) }
+}

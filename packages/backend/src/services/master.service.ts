@@ -588,6 +588,24 @@ export async function deleteTag(id: string): Promise<void> {
   return softDelete('tags', id)
 }
 
+// ─── Value Streams ────────────────────────────────────────────────────────────
+
+export interface ValueStreamRow {
+  id: string; name: string; code: string | null; plant_id: string | null
+}
+
+export async function listValueStreams(plantId?: string): Promise<ValueStreamRow[]> {
+  const where = plantId
+    ? 'WHERE is_active = TRUE AND (plant_id IS NULL OR plant_id = $1) ORDER BY sort_order, name'
+    : 'WHERE is_active = TRUE ORDER BY sort_order, name'
+  const params = plantId ? [plantId] : []
+  const result = await pool.query<ValueStreamRow>(
+    `SELECT id, name, code, plant_id FROM value_streams ${where}`,
+    params,
+  )
+  return result.rows
+}
+
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
 function isUniqueViolation(err: unknown): boolean {
