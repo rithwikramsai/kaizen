@@ -41,6 +41,7 @@ export interface CreateIdeaParams {
   proposed_solution?: string
   expected_benefits?: string
   remarks?: string
+  contact_email?: string
   // Operational location (idea context, drives workflow routing)
   plant_id: string
   zone_id: string
@@ -116,9 +117,9 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
         `INSERT INTO ideas
            (registration_id, submitted_by, plant_id, zone_id, department_id, function_id, hall_id, location_id,
             value_stream, category_id, sub_category_id, title, description, problem_statement,
-            proposed_solution, expected_benefits, remarks,
+            proposed_solution, expected_benefits, remarks, contact_email,
             is_anonymous, status, submitted_at, created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'DRAFT',NULL,NOW(),NOW())
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'DRAFT',NULL,NOW(),NOW())
          RETURNING *`,
         [
           null,
@@ -138,6 +139,7 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
           orNull(params.proposed_solution),
           orNull(params.expected_benefits),
           orNull(params.remarks),
+          orNull(params.contact_email),
           params.is_anonymous ?? false,
         ],
       )
@@ -176,9 +178,9 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
       `INSERT INTO ideas
          (registration_id, submitted_by, plant_id, zone_id, department_id, function_id, hall_id, location_id,
           value_stream, category_id, sub_category_id, title, description, problem_statement,
-          proposed_solution, expected_benefits, remarks,
+          proposed_solution, expected_benefits, remarks, contact_email,
           is_anonymous, status, submitted_at, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'SUBMITTED',NOW(),NOW(),NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'SUBMITTED',NOW(),NOW(),NOW())
        RETURNING *`,
       [
         registrationId,
@@ -198,6 +200,7 @@ export async function createIdea(params: CreateIdeaParams): Promise<{
         orNull(params.proposed_solution),
         orNull(params.expected_benefits),
         orNull(params.remarks),
+        orNull(params.contact_email),
         params.is_anonymous ?? false,
       ],
     )
