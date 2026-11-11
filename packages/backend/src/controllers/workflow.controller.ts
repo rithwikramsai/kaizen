@@ -146,11 +146,11 @@ export async function processKaizenAction(req: Request, res: Response): Promise<
       entityId: kaizenId!,
       actorId,
       action: String(action).toUpperCase(),
-      comment,
-      flags,
+      ...(comment ? { comment } : {}),
+      ...(flags ? { flags } : {}),
       sciTechFlag: Boolean(body.sciTechFlag ?? body.sci_tech_required),
-      hodRatings,
-      smeBprRecommendation: body.sme_bpr_recommendation,
+      ...(hodRatings ? { hodRatings } : {}),
+      ...(body.sme_bpr_recommendation !== undefined ? { smeBprRecommendation: body.sme_bpr_recommendation } : {}),
     })
 
     sendSuccess(res, result)

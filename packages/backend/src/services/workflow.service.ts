@@ -209,7 +209,8 @@ export async function processWorkflowAction(params: {
     let nextAssignee: { id: string; full_name: string } | null = null
 
     // HOD must explicitly answer all three flags before approving (H5 — BRD 5.2)
-    if (params.action === 'APPROVE' && currentStep.stage_code === 'HOD_REVIEW') {
+    // Flags are only required on the Idea Approval workflow; Implementation HOD_REVIEW skips this.
+    if (params.action === 'APPROVE' && currentStep.stage_code === 'HOD_REVIEW' && instance.workflow_type === 'IDEA_APPROVAL') {
       const f = params.flags
       if (
         f == null ||
@@ -248,8 +249,8 @@ export async function processWorkflowAction(params: {
           ],
         )
 
-        // Store HOD ratings when provided on kaizen IMPL_HOD_REVIEW step
-        if (params.hodRatings && currentStep.stage_code === 'IMPL_HOD_REVIEW') {
+        // Store HOD ratings when provided on kaizen HOD_REVIEW step (IMPLEMENTATION_APPROVAL workflow)
+        if (params.hodRatings && currentStep.stage_code === 'HOD_REVIEW' && instance.workflow_type === 'IMPLEMENTATION_APPROVAL') {
           await client.query(
             `UPDATE kaizens
              SET hod_business_impact = $1, hod_sustenance = $2, hod_innovation = $3, hod_bpr_recommendation = $4

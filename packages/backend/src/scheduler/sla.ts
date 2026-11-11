@@ -180,7 +180,7 @@ async function processReminderSteps(): Promise<void> {
     try {
       await insertNotification(
         step.assigned_user_id,
-        'SLA_REMINDER_SENT',
+        'SLA_REMINDER',
         `Reminder: ${step.stage_code.replace(/_/g, ' ')} due soon`,
         `This review step is approaching its SLA deadline. Please take action.`,
         step.entity_type,

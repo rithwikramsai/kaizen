@@ -5,7 +5,9 @@ import {
   getRewardsQueue,
   assignRegularReward,
   nominateHighImpact,
+  getSCMembers,
   type ApprovedKaizenForRR,
+  type SCMember,
 } from '../../api/rewards.js'
 import { PageTransition } from '../../components/PageTransition.js'
 import { SkeletonDetail } from '../../components/Skeleton.js'
@@ -86,10 +88,10 @@ function StatusChip({ item }: { item: ApprovedKaizenForRR }) {
 // ─── Gear action menu ─────────────────────────────────────────────────────────
 
 function GearMenu({
-  item, canAssign, onAssign, onNominate, isNominating, onViewNomination,
+  item, canAssign, onAssign, onNominate, onViewNomination,
 }: {
   item: ApprovedKaizenForRR; canAssign: boolean; onAssign: () => void
-  onNominate: () => void; isNominating: boolean; onViewNomination?: () => void
+  onNominate: () => void; onViewNomination?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const hasActions = canAssign || !!item.nomination
@@ -113,10 +115,11 @@ function GearMenu({
                 Assign Regular R&amp;R
               </button>
             )}
-            {canAssign && !item.nomination && (
-              <button onClick={() => { setOpen(false); onNominate() }} disabled={isNominating}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-indigo-300 hover:bg-indigo-500/10 transition-colors disabled:opacity-50">
-                {isNominating ? 'Nominating…' : 'Select as High Impact'}
+            {/* Per BRD: High Impact nomination only available after Regular R&R is assigned */}
+            {canAssign && item.reward && !item.nomination && (
+              <button onClick={() => { setOpen(false); onNominate() }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-indigo-300 hover:bg-indigo-500/10 transition-colors">
+                Select as High Impact
               </button>
             )}
             {item.nomination && onViewNomination && (
@@ -134,9 +137,9 @@ function GearMenu({
 
 // ─── Kaizen card ──────────────────────────────────────────────────────────────
 
-function KaizenCard({ item, canAssign, onAssign, onNominate, isNominating, onViewNomination, onViewIdea }: {
+function KaizenCard({ item, canAssign, onAssign, onNominate, onViewNomination, onViewIdea }: {
   item: ApprovedKaizenForRR; canAssign: boolean; onAssign: () => void
-  onNominate: () => void; isNominating: boolean; onViewNomination?: () => void; onViewIdea?: () => void
+  onNominate: () => void; onViewNomination?: () => void; onViewIdea?: () => void
 }) {
   return (
     <div className="glass rounded-2xl p-5 flex flex-col gap-3 hover:border-white/10 transition-colors">
@@ -152,7 +155,7 @@ function KaizenCard({ item, canAssign, onAssign, onNominate, isNominating, onVie
           >{item.registration_id}</button>
           <StatusChip item={item} />
         </div>
-        <GearMenu item={item} canAssign={canAssign} onAssign={onAssign} onNominate={onNominate} isNominating={isNominating} onViewNomination={onViewNomination} />
+        <GearMenu item={item} canAssign={canAssign} onAssign={onAssign} onNominate={onNominate} onViewNomination={onViewNomination} />
       </div>
 
       <p className="text-white font-semibold text-sm leading-snug">{item.title}</p>
@@ -226,6 +229,87 @@ function AssignRewardModal({ kaizen, onClose, onSuccess }: {
   )
 }
 
+// ─── Nominate High Impact modal ───────────────────────────────────────────────
+
+function NominateHighImpactModal({ kaizen, onClose, onSuccess }: {
+  kaizen: ApprovedKaizenForRR; onClose: () => void; onSuccess: (nominationId: string) => void
+}) {
+  const [remarks, setRemarks] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  const { data: scMembers = [], isLoading: loadingSC } = useQuery({
+    queryKey: ['sc-members'],
+    queryFn: getSCMembers,
+    staleTime: 60_000,
+  })
+
+  const mutation = useMutation({
+    mutationFn: () => nominateHighImpact(kaizen.kaizen_id, selectedIds, remarks || undefined),
+    onSuccess: (result) => onSuccess(result.nominationId),
+  })
+
+  function toggle(id: string) {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <h2 className="text-white font-semibold text-lg mb-1">Select as High Impact Kaizen</h2>
+        <p className="text-slate-400 text-sm mb-5 truncate">{kaizen.title} · {kaizen.registration_id}</p>
+
+        {mutation.isError && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{(mutation.error as Error).message}</div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs text-slate-400 mb-2">
+              Select Steering Committee Members <span className="text-red-400">*</span>
+            </label>
+            {loadingSC ? (
+              <p className="text-slate-500 text-sm">Loading SC members…</p>
+            ) : scMembers.length === 0 ? (
+              <p className="text-amber-400 text-sm">No Steering Committee Members found for this plant.</p>
+            ) : (
+              <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                {(scMembers as SCMember[]).map((m) => (
+                  <label key={m.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(m.id)}
+                      onChange={() => toggle(m.id)}
+                      className="accent-indigo-500"
+                    />
+                    <span className="text-sm text-slate-200">{m.full_name}</span>
+                    <span className="text-xs text-slate-500 ml-auto">{m.email}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1.5">Remarks (optional)</label>
+            <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={3}
+              placeholder="Add remarks for this nomination…"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-none" />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-sm rounded-lg transition-all">Cancel</button>
+          <button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || selectedIds.length === 0}
+            className="flex-1 px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-300 text-sm font-medium rounded-lg transition-all disabled:opacity-50">
+            {mutation.isPending ? 'Nominating…' : `Nominate (${selectedIds.length} SC selected)`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function StatTile({ value, label, color }: { value: number; label: string; color: 'amber' | 'emerald' | 'indigo' | 'purple' }) {
@@ -250,7 +334,7 @@ export function RewardsQueuePage() {
 
   const [activeTab, setActiveTab] = useState<TabId>('approved')
   const [assigningKaizen, setAssigningKaizen] = useState<ApprovedKaizenForRR | null>(null)
-  const [nominatingId, setNominatingId] = useState<string | null>(null)
+  const [nominatingKaizen, setNominatingKaizen] = useState<ApprovedKaizenForRR | null>(null)
   const [filterOwner, setFilterOwner] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
 
@@ -260,14 +344,7 @@ export function RewardsQueuePage() {
     staleTime: 30_000,
   })
 
-  const nominateMutation = useMutation({
-    mutationFn: (kaizenId: string) => nominateHighImpact(kaizenId),
-    onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: ['rewards-queue'] })
-      navigate(`/rewards/nominations/${result.nominationId}`)
-    },
-    onSettled: () => setNominatingId(null),
-  })
+  // nominateMutation removed — now handled inside NominateHighImpactModal
 
   const allItems = data ?? []
   const canAssign = hasPermission('CAN_ASSIGN_REWARD') || hasPermission('CAN_NOMINATE_HIGH_IMPACT')
@@ -367,8 +444,7 @@ export function RewardsQueuePage() {
                 item={item}
                 canAssign={canAssign}
                 onAssign={() => setAssigningKaizen(item)}
-                onNominate={() => { setNominatingId(item.kaizen_id); nominateMutation.mutate(item.kaizen_id) }}
-                isNominating={nominatingId === item.kaizen_id && nominateMutation.isPending}
+                onNominate={() => setNominatingKaizen(item)}
                 onViewNomination={item.nomination ? () => navigate(`/rewards/nominations/${item.nomination!.id}`) : undefined}
                 onViewIdea={() => navigate(`/ideas/${item.idea_id}`)}
               />
@@ -384,6 +460,18 @@ export function RewardsQueuePage() {
           onSuccess={() => {
             setAssigningKaizen(null)
             void queryClient.invalidateQueries({ queryKey: ['rewards-queue'] })
+          }}
+        />
+      )}
+
+      {nominatingKaizen && (
+        <NominateHighImpactModal
+          kaizen={nominatingKaizen}
+          onClose={() => setNominatingKaizen(null)}
+          onSuccess={(nominationId) => {
+            setNominatingKaizen(null)
+            void queryClient.invalidateQueries({ queryKey: ['rewards-queue'] })
+            navigate(`/rewards/nominations/${nominationId}`)
           }}
         />
       )}

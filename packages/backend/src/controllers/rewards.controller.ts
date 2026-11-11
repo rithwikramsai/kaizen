@@ -12,6 +12,7 @@ import {
   getRewardHistory,
   getLeaderboard,
   getScPendingNominations,
+  getSCMembersForPlant,
 } from '../services/rewards.service.js'
 
 function handleError(res: Response, err: unknown): void {
@@ -55,10 +56,17 @@ export async function assignReward(req: Request, res: Response): Promise<void> {
 export async function nominateForHighImpact(req: Request, res: Response): Promise<void> {
   try {
     const { kaizenId } = req.params
+    const { scMemberIds, remarks } = req.body as { scMemberIds?: string[]; remarks?: string }
+    if (!Array.isArray(scMemberIds) || scMemberIds.length === 0) {
+      sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'At least one Steering Committee Member must be selected')
+      return
+    }
     const result = await nominateHighImpact({
       kaizenId: kaizenId!,
       actorId: req.user!.id,
       actorPlantId: req.user!.plant_id,
+      scMemberIds,
+      ...(remarks ? { remarks } : {}),
     })
     sendSuccess(res, result, 201)
   } catch (err) {
@@ -149,6 +157,16 @@ export async function nominateForInterPlant(req: Request, res: Response): Promis
       competitionRound: competition_round,
     })
     sendSuccess(res, result, 201)
+  } catch (err) {
+    handleError(res, err)
+  }
+}
+
+// GET /rewards/sc-members
+export async function getScMembers(req: Request, res: Response): Promise<void> {
+  try {
+    const data = await getSCMembersForPlant(req.user!.plant_id)
+    sendSuccess(res, data)
   } catch (err) {
     handleError(res, err)
   }
