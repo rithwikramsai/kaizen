@@ -112,7 +112,9 @@ INSERT INTO users (id, employee_id, email, full_name, phone, password_hash, is_a
   ('a0000000-0000-0000-0000-000000000008', 'EMP008', 'mgmt@acg.com',       'Deepak Joshi',  '9000000008', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW()),
   -- SME
   ('a0000000-0000-0000-0000-000000000009', 'EMP009', 'sme@acg.com',        'Ramesh Iyer',   '9000000009', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW()),
-  -- SC Member 2 (sc@acg.com = EMP010 already exists as SC member 1)
+  -- SC Member 1
+  ('a0000000-0000-0000-0000-00000000000a', 'EMP010', 'sc@acg.com',         'Pooja Verma',   '9000000010', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW()),
+  -- SC Member 2
   ('a0000000-0000-0000-0000-00000000000b', 'EMP011', 'sc2@acg.com',        'Arjun Mehta',   '9000000011', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW()),
   -- Zone Leader 2 (Zone B)
   ('a0000000-0000-0000-0000-00000000000c', 'EMP012', 'zoneleader2@acg.com','Neha Joshi',    '9000000012', '$2b$12$5ditxKBr0eaY2.2SqCeQxO0Nl8FsaQvcraqQNdhuD1GSjg0EkTUT2', TRUE, NOW(), NOW()),
@@ -130,6 +132,11 @@ ON CONFLICT (user_id, role_id, plant_id) DO NOTHING;
 INSERT INTO user_roles (user_id, role_id, plant_id, zone_id, department_id, granted_at, granted_by)
 SELECT u.id, '00000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000001', NULL, NULL, NOW(), 'a0000000-0000-0000-0000-000000000001'
 FROM users u WHERE u.email = 'sme@acg.com'
+ON CONFLICT (user_id, role_id, plant_id) DO NOTHING;
+
+INSERT INTO user_roles (user_id, role_id, plant_id, zone_id, department_id, granted_at, granted_by)
+SELECT u.id, '00000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000001', NULL, NULL, NOW(), 'a0000000-0000-0000-0000-000000000001'
+FROM users u WHERE u.email = 'sc@acg.com'
 ON CONFLICT (user_id, role_id, plant_id) DO NOTHING;
 
 INSERT INTO user_roles (user_id, role_id, plant_id, zone_id, department_id, granted_at, granted_by)

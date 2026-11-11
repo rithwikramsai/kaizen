@@ -175,8 +175,8 @@ export async function assignRegularReward(params: {
     await client.query('BEGIN')
 
     // Plant isolation check
-    const kaizenRes = await client.query<{ plant_id: string; status: string; implementation_owner: string | null; title: string | null; kaizen_id: string | null }>(
-      `SELECT i.plant_id, k.status, k.implementation_owner, k.title, k.kaizen_id
+    const kaizenRes = await client.query<{ plant_id: string; status: string; implementation_owner: string | null; submitted_by: string | null; title: string | null; kaizen_id: string | null }>(
+      `SELECT i.plant_id, k.status, k.implementation_owner, i.submitted_by, k.title, k.kaizen_id
        FROM kaizens k JOIN ideas i ON i.id = k.idea_id
        WHERE k.id = $1`,
       [kaizenId],
@@ -216,7 +216,7 @@ export async function assignRegularReward(params: {
 
     await client.query('COMMIT')
 
-    const { implementation_owner, title, kaizen_id: kaizenRef } = kaizenRes.rows[0]!
+    const { implementation_owner, submitted_by, title, kaizen_id: kaizenRef } = kaizenRes.rows[0]!
     if (implementation_owner) {
       void sendEmailForEvent('REWARD_ASSIGNED', implementation_owner, {
         kaizenRef: kaizenRef ?? undefined,
@@ -226,8 +226,8 @@ export async function assignRegularReward(params: {
         entityType: 'kaizen',
         entityId: kaizenId,
       })
-      // M12 — in-app notification to reward recipient
-      void pool.query(
+      // M12 — in-app notification to implementation owner
+      pool.query(
         `INSERT INTO notifications (recipient_id, notification_type, title, body, entity_type, entity_id, created_at)
          VALUES ($1, 'REWARD_ASSIGNED', $2, $3, 'kaizen', $4, NOW())`,
         [
@@ -236,7 +236,21 @@ export async function assignRegularReward(params: {
           `Congratulations! A reward has been assigned for your kaizen${title ? `: ${title}` : ''}.`,
           kaizenId,
         ],
-      )
+      ).catch((e: Error) => console.error('[rewards] owner notification failed:', e.message))
+    }
+
+    // Notify the original idea submitter if different from implementation owner
+    if (submitted_by && submitted_by !== implementation_owner) {
+      pool.query(
+        `INSERT INTO notifications (recipient_id, notification_type, title, body, entity_type, entity_id, created_at)
+         VALUES ($1, 'REWARD_ASSIGNED', $2, $3, 'kaizen', $4, NOW())`,
+        [
+          submitted_by,
+          'Your Idea Has Been Rewarded',
+          `Great news! Your idea${title ? ` "${title}"` : ''} was implemented and has received a reward.`,
+          kaizenId,
+        ],
+      ).catch((e: Error) => console.error('[rewards] submitter notification failed:', e.message))
     }
 
     return { rewardId }
@@ -250,12 +264,33 @@ export async function assignRegularReward(params: {
 
 // ─── Nominate High Impact ─────────────────────────────────────────────────────
 
+export async function getSCMembersForPlant(plantId: string): Promise<{ id: string; full_name: string; email: string }[]> {
+  const res = await pool.query<{ id: string; full_name: string; email: string }>(
+    `SELECT DISTINCT u.id, u.full_name, u.email
+     FROM user_roles ur
+     JOIN roles r ON r.id = ur.role_id
+     JOIN users u ON u.id = ur.user_id
+     WHERE r.name = 'Steering Committee Member'
+       AND ur.plant_id = $1
+       AND u.is_active = TRUE
+     ORDER BY u.full_name ASC`,
+    [plantId],
+  )
+  return res.rows
+}
+
 export async function nominateHighImpact(params: {
   kaizenId: string
   actorId: string
   actorPlantId: string
+  scMemberIds: string[]
+  remarks?: string
 }): Promise<{ nominationId: string }> {
-  const { kaizenId, actorId, actorPlantId } = params
+  const { kaizenId, actorId, actorPlantId, scMemberIds, remarks } = params
+
+  if (!scMemberIds || scMemberIds.length === 0) {
+    throw new ServiceError(400, ErrorCodes.VALIDATION_ERROR, 'At least one Steering Committee Member must be assigned')
+  }
 
   const client = await pool.connect()
   try {
@@ -296,52 +331,40 @@ export async function nominateHighImpact(params: {
     )
     const nominationId = nomRes.rows[0]!.id
 
-    // Auto-assign all active Steering Committee Members in the same plant
-    const scMembers = await client.query<{ user_id: string }>(
-      `SELECT DISTINCT ur.user_id
-       FROM user_roles ur
-       JOIN roles r ON r.id = ur.role_id
-       JOIN users u ON u.id = ur.user_id
-       WHERE r.name = 'Steering Committee Member'
-         AND ur.plant_id = $1
-         AND u.is_active = TRUE`,
-      [actorPlantId],
-    )
-
-    for (const sc of scMembers.rows) {
+    // Assign only the SC members explicitly selected by OPEX (BRD F085)
+    for (const scId of scMemberIds) {
       await client.query(
         `INSERT INTO sc_ratings (nomination_id, sc_member_id) VALUES ($1, $2)`,
-        [nominationId, sc.user_id],
+        [nominationId, scId],
       )
     }
 
     await client.query(
       `INSERT INTO audit_logs (performed_by, action, entity_type, entity_id, payload)
        VALUES ($1, 'HIGH_IMPACT_NOMINATED', 'kaizen', $2, $3)`,
-      [actorId, kaizenId, JSON.stringify({ nomination_id: nominationId, sc_members_assigned: scMembers.rows.length })],
+      [actorId, kaizenId, JSON.stringify({ nomination_id: nominationId, sc_members_assigned: scMemberIds.length, remarks })],
     )
 
     await client.query('COMMIT')
 
     const { title, kaizen_id: kaizenRef } = kaizenRes.rows[0]!
-    for (const sc of scMembers.rows) {
-      void sendEmailForEvent('HIGH_IMPACT_NOMINATED', sc.user_id, {
+    for (const scId of scMemberIds) {
+      void sendEmailForEvent('HIGH_IMPACT_NOMINATED', scId, {
         kaizenRef: kaizenRef ?? undefined,
         kaizenTitle: title ?? undefined,
         entityType: 'kaizen',
         entityId: kaizenId,
       })
-      // M12 — in-app notification to each SC member
-      void pool.query(
+      pool.query(
         `INSERT INTO notifications (recipient_id, notification_type, title, body, entity_type, entity_id, created_at)
          VALUES ($1, 'HIGH_IMPACT_NOMINATED', $2, $3, 'kaizen', $4, NOW())`,
         [
-          sc.user_id,
+          scId,
           'Action Required: Rate a High-Impact Kaizen',
           `A kaizen${title ? ` "${title}"` : ''} has been nominated for High-Impact recognition. Please submit your rating.`,
           kaizenId,
         ],
-      )
+      ).catch((e: Error) => console.error('[rewards] SC notification failed:', e.message))
     }
 
     return { nominationId }

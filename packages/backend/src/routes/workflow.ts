@@ -42,10 +42,10 @@ workflowRouter.get(
 
 // Kaizen workflow
 workflowRouter.post('/kaizens/:kaizenId/initiate', requirePermission('CAN_REVIEW_IMPLEMENTATION'), initiateKaizenWorkflow)
-// Action: also allows CAN_UPLOAD_SCI_TECH so HOD can complete the SCI_TECH_UPLOAD step (M1/L6)
+// Action: also allows CAN_REVIEW_SME (SME step) and CAN_UPLOAD_SCI_TECH (HOD sci-tech step)
 workflowRouter.post(
   '/kaizens/:kaizenId/action',
-  requireAnyPermission('CAN_REVIEW_IMPLEMENTATION', 'CAN_UPLOAD_SCI_TECH'),
+  requireAnyPermission('CAN_REVIEW_IMPLEMENTATION', 'CAN_REVIEW_SME', 'CAN_UPLOAD_SCI_TECH'),
   processKaizenAction,
 )
 // Status: accessible to anyone who can view or act on kaizens (C2 — same pattern)
@@ -53,7 +53,7 @@ workflowRouter.get(
   '/kaizens/:kaizenId/status',
   requireAnyPermission(
     'CAN_VIEW_OWN_IDEAS', 'CAN_VIEW_ZONE_IDEAS', 'CAN_VIEW_PLANT_IDEAS', 'CAN_VIEW_ALL_IDEAS',
-    'CAN_REVIEW_IMPLEMENTATION', 'CAN_SUBMIT_ONE_PAGER',
+    'CAN_REVIEW_IMPLEMENTATION', 'CAN_REVIEW_SME', 'CAN_SUBMIT_ONE_PAGER',
   ),
   getKaizenWorkflowStatus,
 )

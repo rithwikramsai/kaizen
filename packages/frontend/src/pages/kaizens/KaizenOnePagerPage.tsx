@@ -198,8 +198,8 @@ export function KaizenOnePagerPage() {
   )
   const isSmeStep = myPendingStep?.stage_code === 'SME_REVIEW'
   const isHodImplStep = myPendingStep?.stage_code === 'IMPL_HOD_REVIEW'
-  const [sciTechFlag, setSciTechFlag] = useState(false)
-  const [smeBprFlag, setSmeBprFlag] = useState(false)
+  const [sciTechFlag, setSciTechFlag] = useState<boolean | null>(null)
+  const [smeBprFlag, setSmeBprFlag] = useState<boolean | null>(null)
   const [showHodRatingModal, setShowHodRatingModal] = useState(false)
   const [hodRatings, setHodRatings] = useState<{
     businessImpact: 1 | 3 | 5
@@ -218,7 +218,7 @@ export function KaizenOnePagerPage() {
       return submitKaizenWorkflowAction(kaizenId!, {
         action,
         comment: reviewComment.trim() || undefined,
-        ...(isSmeStep ? { sciTechFlag, sme_bpr_recommendation: smeBprFlag } : {}),
+        ...(isSmeStep ? { sciTechFlag: sciTechFlag ?? false, sme_bpr_recommendation: smeBprFlag ?? false } : {}),
         ...(isHodImplStep && hodRatings ? {
           hod_business_impact: hodRatings.businessImpact,
           hod_sustenance: hodRatings.sustenance,
@@ -404,15 +404,34 @@ export function KaizenOnePagerPage() {
                 Your Review — {myPendingStep.stage_code.replace(/_/g, ' ')}
               </h2>
               {isSmeStep && (
-                <div className="mb-4 space-y-2">
-                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                    <input type="checkbox" checked={sciTechFlag} onChange={(e) => setSciTechFlag(e.target.checked)} className="accent-indigo-500" />
-                    Sci-Tech Communication Required
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                    <input type="checkbox" checked={smeBprFlag} onChange={(e) => setSmeBprFlag(e.target.checked)} className="accent-indigo-500" />
-                    Recommend for Best Practice Replication (BPR)
-                  </label>
+                <div className="mb-4 space-y-3">
+                  {([
+                    { label: 'Sci-Tech Communication Required', value: sciTechFlag, set: setSciTechFlag },
+                    { label: 'Recommend for Best Practice Replication (BPR)', value: smeBprFlag, set: setSmeBprFlag },
+                  ] as { label: string; value: boolean | null; set: (v: boolean) => void }[]).map(({ label, value, set }) => (
+                    <div key={label}>
+                      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1">{label}</p>
+                      <div className="flex gap-2">
+                        {[true, false].map((opt) => (
+                          <button
+                            key={String(opt)}
+                            type="button"
+                            onClick={() => set(opt)}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                              value === opt
+                                ? opt ? 'bg-emerald-600/30 border-emerald-500/50 text-emerald-300' : 'bg-red-600/20 border-red-500/40 text-red-300'
+                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
+                            }`}
+                          >
+                            {opt ? 'Yes' : 'No'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {(sciTechFlag === null || smeBprFlag === null) && (
+                    <p className="text-[11px] text-amber-400">Answer both flags to enable Approve.</p>
+                  )}
                 </div>
               )}
               {isHodImplStep && (
@@ -446,7 +465,7 @@ export function KaizenOnePagerPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => reviewMutation.mutate('APPROVE')}
-                  disabled={reviewMutation.isPending || (isHodImplStep && !hodRatings)}
+                  disabled={reviewMutation.isPending || (isHodImplStep && !hodRatings) || (isSmeStep && (sciTechFlag === null || smeBprFlag === null))}
                   className="px-5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
                 >
                   {reviewMutation.isPending ? 'Processing…' : '✓ Approve'}
@@ -704,12 +723,12 @@ export function KaizenOnePagerPage() {
               Your Review — {myPendingStep.stage_code.replace(/_/g, ' ')}
             </h2>
 
-            {/* SME: Sci-Tech flag */}
-            {isSmeStep && (
+            {/* SME: Sci-Tech flag (duplicate block — hidden, main UI is in review panel above) */}
+            {false && isSmeStep && (
               <label className="flex items-center gap-2 text-sm text-slate-300 mb-4 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={sciTechFlag}
+                  checked={sciTechFlag ?? false}
                   onChange={(e) => setSciTechFlag(e.target.checked)}
                   className="accent-indigo-500"
                 />

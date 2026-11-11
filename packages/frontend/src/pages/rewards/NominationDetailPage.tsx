@@ -247,8 +247,13 @@ function InterPlantModal({
           </div>
           <div>
             <label className="block text-xs text-slate-400 mb-1.5">Competition Round</label>
-            <input type="text" value={round} onChange={(e) => setRound(e.target.value)} placeholder="e.g. Q1, Round 1"
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-indigo-500/50" />
+            <select value={round} onChange={(e) => setRound(e.target.value)}
+              className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500/50">
+              <option value="">Select round…</option>
+              <option value="PLANT">PLANT</option>
+              <option value="CLUSTER">CLUSTER</option>
+              <option value="NATIONAL">NATIONAL</option>
+            </select>
           </div>
         </div>
         <div className="flex gap-3 mt-6">
