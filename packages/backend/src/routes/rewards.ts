@@ -12,6 +12,7 @@ import {
   getHistory,
   getLeaderboardData,
   getMyRatings,
+  getScMembers,
 } from '../controllers/rewards.controller.js'
 
 export const rewardsRouter: ReturnType<typeof Router> = Router()
@@ -47,3 +48,6 @@ rewardsRouter.get('/leaderboard', requirePermission('CAN_VIEW_REPORTS'), getLead
 
 // SC member's own rating queue
 rewardsRouter.get('/my-ratings', requirePermission('CAN_RATE_HIGH_IMPACT'), getMyRatings)
+
+// SC members list for OPEX to pick from during High Impact nomination
+rewardsRouter.get('/sc-members', requirePermission('CAN_NOMINATE_HIGH_IMPACT'), getScMembers)

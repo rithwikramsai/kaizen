@@ -104,12 +104,21 @@ export function assignRegularReward(kaizenId: string, rewardAmount: number | nul
   })
 }
 
-export function nominateHighImpact(kaizenId: string): Promise<{ nominationId: string }> {
+export function nominateHighImpact(
+  kaizenId: string,
+  scMemberIds: string[],
+  remarks?: string,
+): Promise<{ nominationId: string }> {
   return authFetch<{ nominationId: string }>(`/rewards/nominate-high-impact/${kaizenId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ scMemberIds, ...(remarks ? { remarks } : {}) }),
   })
+}
+
+export type SCMember = { id: string; full_name: string; email: string }
+
+export function getSCMembers(): Promise<SCMember[]> {
+  return authFetch<SCMember[]>('/rewards/sc-members')
 }
 
 export function getNominationDetail(nominationId: string): Promise<NominationDetail> {

@@ -573,10 +573,12 @@ export function Layout() {
               <NavItem to="/ideas"      icon={<DocumentIcon />}  label="My Ideas"    end />
               <NavItem to="/ideas/all"  icon={<GridIcon />}      label="All Ideas" />
 
-              {hasPermission('CAN_APPROVE_IDEA') && (
+              {(hasPermission('CAN_APPROVE_IDEA') || hasPermission('CAN_REVIEW_SAFETY') || hasPermission('CAN_REVIEW_QUALITY') || hasPermission('CAN_REVIEW_IMPLEMENTATION') || hasPermission('CAN_REVIEW_SME')) && (
                 <NavItem to="/review"   icon={<InboxIcon />}     label="Review Queue" />
               )}
-              <NavItem to="/kaizens"    icon={<WrenchIcon />}    label="Implementation" />
+              {(hasPermission('CAN_SUBMIT_ONE_PAGER') || hasPermission('CAN_MARK_IMPLEMENTED') || hasPermission('CAN_REVIEW_IMPLEMENTATION')) && (
+                <NavItem to="/kaizens"    icon={<WrenchIcon />}    label="Implementation" />
+              )}
 
               {(hasPermission('CAN_ASSIGN_REWARD') || hasPermission('CAN_NOMINATE_HIGH_IMPACT') || hasPermission('CAN_VIEW_REPORTS')) && (
                 <>

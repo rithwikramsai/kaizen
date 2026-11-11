@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/authenticate.js'
-import { requirePermission } from '../middleware/requirePermission.js'
+import { requirePermission, requireAnyPermission } from '../middleware/requirePermission.js'
 import * as ctrl from '../controllers/kaizens.controller.js'
 
 export const kaizensRouter: ReturnType<typeof Router> = Router()
@@ -11,8 +11,8 @@ kaizensRouter.get('/queue', authenticate, requirePermission('CAN_MARK_IMPLEMENTE
 // Mark an idea as implemented → creates kaizen record
 kaizensRouter.post('/ideas/:ideaId/mark-implemented', authenticate, requirePermission('CAN_MARK_IMPLEMENTED'), ctrl.markImplemented)
 
-// Get a single kaizen (One Pager detail)
-kaizensRouter.get('/:kaizenId', authenticate, requirePermission('CAN_SUBMIT_ONE_PAGER'), ctrl.getKaizen)
+// Get a single kaizen (One Pager detail) — also accessible to all reviewer roles
+kaizensRouter.get('/:kaizenId', authenticate, requireAnyPermission('CAN_SUBMIT_ONE_PAGER', 'CAN_REVIEW_IMPLEMENTATION', 'CAN_REVIEW_SME', 'CAN_REVIEW_SAFETY', 'CAN_REVIEW_QUALITY', 'CAN_APPROVE_IDEA'), ctrl.getKaizen)
 
 // Save One Pager draft
 kaizensRouter.patch('/:kaizenId/draft', authenticate, requirePermission('CAN_SUBMIT_ONE_PAGER'), ctrl.saveDraft)

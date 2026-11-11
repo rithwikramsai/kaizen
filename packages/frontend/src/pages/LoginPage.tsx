@@ -142,7 +142,7 @@ function Btn3D({ variant = 'primary', children, style, className = '', ...rest }
     <button
       ref={tilt.ref}
       onMouseMove={tilt.onMouseMove}
-      onMouseLeave={(e) => { tilt.onMouseLeave(e); setHovered(false) }}
+      onMouseLeave={() => { tilt.onMouseLeave(); setHovered(false) }}
       onMouseEnter={() => setHovered(true)}
       style={{
         ...base,
