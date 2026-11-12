@@ -1,0 +1,251 @@
+/**
+ * ACG Kaizen - Base Styles
+ * Global CSS foundation for professional light theme
+ *
+ * IMPORTANT: This file only adds visual styles.
+ * It does NOT change any component logic or functionality.
+ */
+
+/* ═══ GLOBAL RESETS ═══ */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* DISABLED - Let individual pages control their own backgrounds */
+/*
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #171717;
+  background-color: #fafafa;
+  margin: 0;
+  padding: 0;
+}
+*/
+
+/* ═══ PROFESSIONAL SCROLLBAR ═══ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f5; /* neutral-100 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d4; /* neutral-300 */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a3a3a3; /* neutral-400 */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d4 #f5f5f5;
+}
+
+/* ═══ FOCUS STATES (Accessibility) ═══ */
+*:focus-visible {
+  outline: 3px solid rgba(232, 41, 74, 0.2); /* ACG red focus ring */
+  outline-offset: 2px;
+}
+
+/* Remove default focus for mouse users, keep for keyboard */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ═══ TYPOGRAPHY IMPROVEMENTS ═══ */
+h1, h2, h3, h4, h5, h6 {
+  color: #171717; /* neutral-900 */
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+}
+
+h1 { font-size: 2.25rem; }  /* 36px */
+h2 { font-size: 1.5rem; }   /* 24px */
+h3 { font-size: 1.25rem; }  /* 20px */
+h4 { font-size: 1.125rem; } /* 18px */
+h5 { font-size: 1rem; }     /* 16px */
+h6 { font-size: 0.875rem; } /* 14px */
+
+p {
+  margin: 0;
+  color: #525252; /* neutral-600 - body text */
+}
+
+a {
+  color: #e8294a; /* ACG red */
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+
+a:hover {
+  color: #c0182f; /* ACG red hover */
+}
+
+/* ═══ REMOVE DARK MODE ARTIFACTS ═══ */
+/* DISABLED - Too aggressive, broke existing components */
+/*
+.dark,
+[data-theme="dark"],
+.bg-dark,
+.bg-black {
+  background-color: #fafafa !important;
+  color: #171717 !important;
+}
+*/
+
+/* ═══ BUTTON RESET (Prepare for styling) ═══ */
+/* DISABLED - Let components handle their own button styling */
+/*
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+}
+*/
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ═══ INPUT RESET ═══ */
+/* DISABLED - Let components handle their own input styling */
+/*
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+*/
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ═══ UTILITY CLASSES ═══ */
+
+/* Professional card shadow */
+.card-shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.card-shadow-hover:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Professional borders */
+.border-subtle {
+  border: 1px solid #e5e5e5; /* neutral-200 */
+}
+
+.border-strong {
+  border: 1px solid #d4d4d4; /* neutral-300 */
+}
+
+/* Text utilities */
+.text-primary {
+  color: #171717; /* neutral-900 */
+}
+
+.text-secondary {
+  color: #525252; /* neutral-600 */
+}
+
+.text-tertiary {
+  color: #737373; /* neutral-500 */
+}
+
+.text-disabled {
+  color: #a3a3a3; /* neutral-400 */
+}
+
+/* Background utilities */
+.bg-page {
+  background-color: #fafafa; /* neutral-50 */
+}
+
+.bg-surface {
+  background-color: #ffffff; /* white */
+}
+
+.bg-subtle {
+  background-color: #f5f5f5; /* neutral-100 */
+}
+
+/* ═══ SMOOTH TRANSITIONS ═══ */
+.transition-smooth {
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ═══ REMOVE DECORATIVE EFFECTS ═══ */
+/* DISABLED - These selectors were too aggressive and broke form fields */
+
+/* Kill all particles, floating animations */
+/*
+[class*="particle"],
+[class*="float"],
+[class*="drift"],
+.animate-float,
+.animate-pulse-glow {
+  display: none !important;
+}
+*/
+
+/* Remove 3D transforms */
+/*
+[style*="perspective"],
+[style*="rotateX"],
+[style*="rotateY"],
+[style*="translateZ"] {
+  transform: none !important;
+}
+*/
+
+/* Remove dramatic gradients on backgrounds */
+/*
+[style*="linear-gradient"][style*="148deg"],
+[style*="linear-gradient"][style*="135deg"][style*="#ff4d6d"],
+[style*="linear-gradient"][style*="#e8294a"][style*="48%"] {
+  background: #fafafa !important;
+}
+*/
+
+/* ═══ PRINT STYLES ═══ */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  a {
+    color: black;
+    text-decoration: underline;
+  }
+}
